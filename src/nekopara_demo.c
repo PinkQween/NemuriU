@@ -1,5 +1,6 @@
 #include "nekopara_demo.h"
 #include "cvn_full.h"
+#include "engine/text.h"
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <math.h>
@@ -34,6 +35,10 @@ typedef struct {
 
 typedef struct {
     CVNEngine *engine;
+    CVNTextRenderer *text_renderer;
+    TTF_Font *dialogue_font;
+    TTF_Font *name_font;
+    TTF_Font *ui_font;
     
     /* Dialogue state */
     DialogueLine *script;
@@ -128,6 +133,14 @@ static void nekopara_init(NekoparaDemo *demo, CVNEngine *engine) {
     demo->vanilla_breath = 0.0f;
     demo->in_choice = false;
     demo->running = true;
+    
+    /* Initialize text rendering */
+    demo->text_renderer = cvn_text_init();
+    if (demo->text_renderer) {
+        demo->dialogue_font = cvn_text_load_font(demo->text_renderer, "content/font.ttf", 24);
+        demo->name_font = cvn_text_load_font(demo->text_renderer, "content/font.ttf", 20);
+        demo->ui_font = cvn_text_load_font(demo->text_renderer, "content/font.ttf", 18);
+    }
     
     /* Set up dual-screen configuration */
     CVNRenderer *renderer = cvn_get_renderer(engine);
@@ -263,6 +276,8 @@ static void nekopara_handle_input(NekoparaDemo *demo, SDL_Event *event) {
 
 static void nekopara_render_dialogue_box(NekoparaDemo *demo, SDL_Renderer *renderer, 
                                          int screen_w, int screen_h) {
+    if (!demo->dialogue_font) return;
+    
     DialogueLine *line = &demo->script[demo->current_line];
     
     /* Dialogue box background (semi-transparent) */
@@ -281,28 +296,48 @@ static void nekopara_render_dialogue_box(NekoparaDemo *demo, SDL_Renderer *rende
     SDL_RenderDrawRect(renderer, &box);
     
     /* Speaker name box */
-    if (line->speaker[0]) {
+    if (line->speaker[0] && demo->name_font) {
         SDL_Rect name_box = {
             .x = box.x,
-            .y = box.y - 30,
-            .w = 200,
-            .h = 30
+            .y = box.y - 35,
+            .w = 250,
+            .h = 35
         };
         
         /* Color based on speaker */
+        SDL_Color name_bg_color = {150, 150, 150, 255}; /* Default gray */
         if (strcmp(line->speaker, "Chocola") == 0) {
-            SDL_SetRenderDrawColor(renderer, 255, 182, 193, 255); /* Pink */
+            name_bg_color = (SDL_Color){255, 182, 193, 255}; /* Pink */
         } else if (strcmp(line->speaker, "Vanilla") == 0) {
-            SDL_SetRenderDrawColor(renderer, 173, 216, 230, 255); /* Light blue */
-        } else {
-            SDL_SetRenderDrawColor(renderer, 150, 150, 150, 255); /* Gray for narrator */
+            name_bg_color = (SDL_Color){173, 216, 230, 255}; /* Light blue */
         }
         
+        SDL_SetRenderDrawColor(renderer, name_bg_color.r, name_bg_color.g, name_bg_color.b, name_bg_color.a);
         SDL_RenderFillRect(renderer, &name_box);
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderDrawRect(renderer, &name_box);
         
-        /* Note: Text would be rendered here with SDL_ttf in full implementation */
+        /* Render speaker name */
+        SDL_Color text_color = {255, 255, 255, 255};
+        cvn_text_draw(renderer, demo->name_font, line->speaker,
+                     name_box.x + 10, name_box.y + 7, text_color);
+    }
+    
+    /* Render dialogue text with typewriter effect */
+    if (line->text[0] && demo->dialogue_font) {
+        /* Create substring for typewriter */
+        char visible_text[MAX_DIALOGUE_LENGTH];
+        int chars_to_show = demo->visible_chars < strlen(line->text) ? 
+                           demo->visible_chars : strlen(line->text);
+        strncpy(visible_text, line->text, chars_to_show);
+        visible_text[chars_to_show] = '\0';
+        
+        SDL_Color text_color = {255, 255, 255, 255};
+        int text_area_width = box.w - 40;
+        
+        cvn_text_draw_wrapped(renderer, demo->dialogue_font, visible_text,
+                             box.x + 20, box.y + 15, text_area_width,
+                             text_color, 5);
     }
     
     /* Continue indicator if text is complete */
@@ -323,14 +358,19 @@ static void nekopara_render_dialogue_box(NekoparaDemo *demo, SDL_Renderer *rende
 
 static void nekopara_render_ui(NekoparaDemo *demo, SDL_Renderer *renderer,
                                int screen_w, int screen_h) {
-    /* UI for gamepad screen */
+    if (!demo->ui_font) return;
     
     /* Status bar */
     SDL_Rect status = { 0, 0, screen_w, 40 };
     SDL_SetRenderDrawColor(renderer, 40, 40, 40, 255);
     SDL_RenderFillRect(renderer, &status);
     
-    /* Controls help */
+    /* Title */
+    SDL_Color white = {255, 255, 255, 255};
+    cvn_text_draw(renderer, demo->ui_font, "Nekopara Demo - GamePad Display",
+                 10, 10, white);
+    
+    /* Controls help box */
     SDL_Rect help_box = {
         .x = 20,
         .y = screen_h / 2 - 100,
@@ -343,7 +383,28 @@ static void nekopara_render_ui(NekoparaDemo *demo, SDL_Renderer *renderer,
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderDrawRect(renderer, &help_box);
     
+    /* Controls text */
+    int text_y = help_box.y + 15;
+    int line_height = 30;
+    SDL_Color cyan = {100, 200, 255, 255};
+    
+    cvn_text_draw(renderer, demo->ui_font, "CONTROLS:", help_box.x + 15, text_y, cyan);
+    text_y += line_height;
+    cvn_text_draw(renderer, demo->ui_font, "SPACE/A - Advance dialogue", 
+                 help_box.x + 25, text_y, white);
+    text_y += line_height;
+    cvn_text_draw(renderer, demo->ui_font, "ESC/B - Exit demo",
+                 help_box.x + 25, text_y, white);
+    text_y += line_height + 10;
+    
     /* Progress indicator */
+    char progress_text[64];
+    snprintf(progress_text, sizeof(progress_text), "Line %d / %d", 
+            demo->current_line + 1, demo->script_length);
+    cvn_text_draw(renderer, demo->ui_font, progress_text,
+                 help_box.x + 15, text_y, cyan);
+    
+    /* Progress bar */
     SDL_Rect progress_bg = {
         .x = 20,
         .y = screen_h - 60,

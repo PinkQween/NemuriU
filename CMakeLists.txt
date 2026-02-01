@@ -28,6 +28,7 @@ set(CVN_SOURCES
     ${CVN_ENGINE_DIR}/src/engine/window.c
     ${CVN_ENGINE_DIR}/src/engine/renderer.c
     ${CVN_ENGINE_DIR}/src/engine/resource.c
+    ${CVN_ENGINE_DIR}/src/engine/text.c
     ${CVN_ENGINE_DIR}/src/engine/api.c
     ${CVN_ENGINE_DIR}/src/script/cvn_parser.c
 )
