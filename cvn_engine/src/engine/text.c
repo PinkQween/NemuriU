@@ -1,4 +1,5 @@
 #include "text.h"
+#include "log.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,21 +34,52 @@ CVNTextRenderer* cvn_text_init(void) {
 }
 
 TTF_Font* cvn_text_load_font(CVNTextRenderer *tr, const char *path, int size) {
-    if (!tr || !path) return NULL;
+    if (!tr || !path) {
+        CVN_LOG("ERROR: cvn_text_load_font - null parameters");
+        return NULL;
+    }
+    
+    CVN_LOG("Loading font: %s (size %d)", path, size);
     
     /* Check if already loaded */
     for (int i = 0; i < tr->font_count; i++) {
         if (strcmp(tr->fonts[i].path, path) == 0 && tr->fonts[i].size == size) {
+            CVN_LOG("Font already loaded (cached)");
             return tr->fonts[i].font;
         }
     }
     
-    /* Load new font */
-    TTF_Font *font = TTF_OpenFont(path, size);
+    /* Try loading the font with different path prefixes */
+    TTF_Font *font = NULL;
+    char alt_path[512];
+    
+    /* Try original path first */
+    font = TTF_OpenFont(path, size);
+    
+#ifdef __WIIU__
+    /* Try Wii U WUHB path: fs:/vol/content/ */
+    if (!font && strncmp(path, "fs:", 3) != 0) {
+        snprintf(alt_path, sizeof(alt_path), "fs:/vol/content/%s", 
+                 path + (strncmp(path, "content/", 8) == 0 ? 8 : 0));
+        CVN_LOG("Trying Wii U path: %s", alt_path);
+        font = TTF_OpenFont(alt_path, size);
+    }
+#else
+    /* Try with leading slash for non-Wii U */
+    if (!font && path[0] != '/') {
+        snprintf(alt_path, sizeof(alt_path), "/%s", path);
+        CVN_LOG("Trying alternate path: %s", alt_path);
+        font = TTF_OpenFont(alt_path, size);
+    }
+#endif
+    
     if (!font) {
-        fprintf(stderr, "Failed to load font %s: %s\n", path, TTF_GetError());
+        CVN_LOG("ERROR: TTF_OpenFont failed: %s", TTF_GetError());
+        CVN_LOG("ERROR: All paths failed for: %s", path);
         return NULL;
     }
+    
+    CVN_LOG("Font loaded successfully: %s (%d pt)", path, size);
     
     /* Cache it */
     if (tr->font_count < MAX_FONTS) {
@@ -55,9 +87,9 @@ TTF_Font* cvn_text_load_font(CVNTextRenderer *tr, const char *path, int size) {
         strncpy(entry->path, path, sizeof(entry->path) - 1);
         entry->size = size;
         entry->font = font;
+        CVN_LOG("Font cached (total fonts: %d)", tr->font_count);
     }
     
-    printf("Loaded font: %s (%d pt)\n", path, size);
     return font;
 }
 

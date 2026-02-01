@@ -2,37 +2,18 @@
 #include "cvn_full.h"
 #include "engine/text.h"
 #include "engine/log.h"
+#include "script/cvn_parser.h"
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
 
-/* Nekopara Demo - Showcasing CVN Engine Features
- * 
- * Features demonstrated:
- * - Dual-screen VN (TV + Gamepad like Wii U)
- * - Multiple characters with expressions
- * - Background scenes
- * - Character animations (breathing, blinking, movement)
- * - Dialogue system with typewriter effect
- * - Choice system
- * - Background music and sound effects
- * - Transitions and effects
- * - Native C scripting integration
+/* Nekopara Demo - CVN Script-Driven
+ * Loads and executes nekopara_demo.cvn
  */
 
 #define MAX_DIALOGUE_LENGTH 512
 #define TYPEWRITER_SPEED 0.03f
-
-typedef struct {
-    char speaker[64];
-    char text[MAX_DIALOGUE_LENGTH];
-    char bg[128];
-    char chocola_expr[128];
-    char vanilla_expr[128];
-    bool show_chocola;
-    bool show_vanilla;
-} DialogueLine;
 
 typedef struct {
     CVNEngine *engine;
@@ -41,10 +22,13 @@ typedef struct {
     TTF_Font *name_font;
     TTF_Font *ui_font;
     
-    /* Dialogue state */
-    DialogueLine *script;
-    int script_length;
-    int current_line;
+    /* CVN Script (heap allocated due to large size) */
+    CVNFile *script;
+    int current_command;
+    
+    /* Current dialogue state */
+    char current_speaker[128];
+    char current_text[MAX_DIALOGUE_LENGTH];
     
     /* Typewriter effect */
     float typewriter_timer;
@@ -53,442 +37,308 @@ typedef struct {
     
     /* Character animations */
     float anim_time;
-    float chocola_breath;
-    float vanilla_breath;
-    
-    /* Choice system */
-    bool in_choice;
-    int choice_count;
-    int selected_choice;
-    char choices[4][128];
     
     bool running;
 } NekoparaDemo;
 
-/* Sample script showcasing features */
-static DialogueLine demo_script[] = {
-    {
-        .speaker = "Narrator",
-        .text = "Welcome to La Soleil, a cozy patisserie run by Kashou and his catgirls!",
-        .bg = "bg/cafe_day.png",
-        .show_chocola = false,
-        .show_vanilla = false
-    },
-    {
-        .speaker = "Narrator",
-        .text = "Today, our energetic Chocola and calm Vanilla are working together...",
-        .bg = "bg/cafe_day.png",
-        .show_chocola = true,
-        .show_vanilla = true,
-        .chocola_expr = "ch/chocola_neutral.png",
-        .vanilla_expr = "ch/vanilla_smile.png"
-    },
-    {
-        .speaker = "Chocola",
-        .text = "Nyaa~! Good morning, Master! ♪",
-        .bg = "bg/cafe_day.png",
-        .show_chocola = true,
-        .show_vanilla = true,
-        .chocola_expr = "ch/chocola_neutral.png",
-        .vanilla_expr = "ch/vanilla_smile.png"
-    },
-    {
-        .speaker = "Vanilla",
-        .text = "...Good morning. Chocola's been hyper since dawn.",
-        .bg = "bg/cafe_day.png",
-        .show_chocola = true,
-        .show_vanilla = true,
-        .chocola_expr = "ch/chocola_neutral.png",
-        .vanilla_expr = "ch/vanilla_smile.png"
-    },
-    {
-        .speaker = "Chocola",
-        .text = "Because today's a special day! We're going to make the BEST cakes ever!",
-        .bg = "bg/cafe_day.png",
-        .show_chocola = true,
-        .show_vanilla = true,
-        .chocola_expr = "ch/chocola_neutral.png",
-        .vanilla_expr = "ch/vanilla_smile.png"
-    },
-    {
-        .speaker = "Narrator",
-        .text = "This demo showcases the CVN engine's dual-display capabilities. Check your gamepad screen for UI!",
-        .bg = "bg/cafe_day.png",
-        .show_chocola = true,
-        .show_vanilla = true,
-        .chocola_expr = "ch/chocola_neutral.png",
-        .vanilla_expr = "ch/vanilla_smile.png"
+static void nekopara_execute_command(NekoparaDemo *demo, CVNCommand *cmd) {
+    switch (cmd->type) {
+        case CVN_CMD_SCENE:
+            if (cmd->arg_count >= 2) {
+                const char *path = cvn_get_asset_path(demo->script, cmd->args[0], cmd->args[1]);
+                if (path) {
+                    CVN_LOG("Setting background: %s", path);
+                    cvn_api_set_background(demo->engine, path);
+                } else {
+                    CVN_LOG("WARNING: Asset not found: %s %s", cmd->args[0], cmd->args[1]);
+                }
+            }
+            break;
+            
+        case CVN_CMD_SHOW:
+            if (cmd->arg_count >= 4) {
+                const char *path = cvn_get_asset_path(demo->script, cmd->args[1], cmd->args[2]);
+                if (path) {
+                    CVN_LOG("Showing sprite: %s (%s)", cmd->args[3], path);
+                    cvn_api_show_sprite(demo->engine, path, cmd->args[3], "actors", 0.5f, 0.8f, 0.85f);
+                } else {
+                    CVN_LOG("WARNING: Sprite not found: %s %s", cmd->args[1], cmd->args[2]);
+                }
+            }
+            break;
+            
+        case CVN_CMD_HIDE:
+            if (cmd->arg_count >= 1) {
+                CVN_LOG("Hiding: %s", cmd->args[0]);
+                cvn_api_hide(demo->engine, cmd->args[0]);
+            }
+            break;
+            
+        case CVN_CMD_SAY:
+            if (cmd->arg_count >= 2) {
+                CVN_LOG("SAY: %s: %.50s...", cmd->args[0], cmd->args[1]);
+                strncpy(demo->current_speaker, cmd->args[0], sizeof(demo->current_speaker) - 1);
+                strncpy(demo->current_text, cmd->args[1], sizeof(demo->current_text) - 1);
+                demo->current_speaker[sizeof(demo->current_speaker) - 1] = '\0';
+                demo->current_text[sizeof(demo->current_text) - 1] = '\0';
+                demo->visible_chars = 0;
+                demo->typewriter_timer = 0.0f;
+                demo->text_complete = false;
+                CVN_LOG("Text set: speaker='%s' text_len=%d", demo->current_speaker, (int)strlen(demo->current_text));
+            }
+            break;
+            
+        default:
+            break;
     }
-};
-
-static void nekopara_init(NekoparaDemo *demo, CVNEngine *engine) {
-    demo->engine = engine;
-    demo->script = demo_script;
-    demo->script_length = sizeof(demo_script) / sizeof(DialogueLine);
-    demo->current_line = 0;
-    demo->typewriter_timer = 0.0f;
-    demo->visible_chars = 0;
-    demo->text_complete = false;
-    demo->anim_time = 0.0f;
-    demo->chocola_breath = 0.0f;
-    demo->vanilla_breath = 0.0f;
-    demo->in_choice = false;
-    demo->running = true;
-    
-    /* Initialize text rendering */
-    demo->text_renderer = cvn_text_init();
-    if (demo->text_renderer) {
-        demo->dialogue_font = cvn_text_load_font(demo->text_renderer, "content/font.ttf", 24);
-        demo->name_font = cvn_text_load_font(demo->text_renderer, "content/font.ttf", 20);
-        demo->ui_font = cvn_text_load_font(demo->text_renderer, "content/font.ttf", 18);
-    }
-    
-    /* Set up dual-screen configuration */
-    CVNRenderer *renderer = cvn_get_renderer(engine);
-    
-    /* Route UI layer to gamepad (secondary display) */
-    cvn_renderer_set_layer_display(renderer, "ui", CVN_DISPLAY_SECONDARY);
-    
-    /* All other layers stay on TV (primary display) */
-    cvn_renderer_set_layer_display(renderer, "background", CVN_DISPLAY_PRIMARY);
-    cvn_renderer_set_layer_display(renderer, "actors", CVN_DISPLAY_PRIMARY);
-    cvn_renderer_set_layer_display(renderer, "overlay", CVN_DISPLAY_PRIMARY);
-    
-    CVN_LOG("=== Nekopara Demo Initialized ===");
-    CVN_LOG("TV Display: Visual Novel scenes");
-    CVN_LOG("Gamepad Display: UI and controls");
-    CVN_LOG("==================================");
 }
 
-static void nekopara_load_line(NekoparaDemo *demo) {
-    if (demo->current_line >= demo->script_length) {
+static void nekopara_init(NekoparaDemo *demo, CVNEngine *engine) {
+    memset(demo, 0, sizeof(NekoparaDemo));
+    demo->engine = engine;
+    demo->running = true;
+    
+    CVN_LOG("nekopara_init: Starting...");
+    CVN_LOG("Allocating CVN script structure...");
+    
+    /* Allocate script on heap (it's >1MB, too big for stack) */
+    demo->script = (CVNFile*)malloc(sizeof(CVNFile));
+    if (!demo->script) {
+        CVN_LOG("ERROR: Failed to allocate CVN script!");
         demo->running = false;
         return;
     }
+    memset(demo->script, 0, sizeof(CVNFile));
     
-    DialogueLine *line = &demo->script[demo->current_line];
+    CVN_LOG("Loading CVN script from: fs:/vol/content/nekopara_demo.cvn");
+    CVN_LOG("About to call cvn_parse_file...");
     
-    /* Load background */
-    if (line->bg[0]) {
-        cvn_api_set_background(demo->engine, line->bg);
+    cvn_parse_file_into(demo->script, "fs:/vol/content/nekopara_demo.cvn");
+    
+    CVN_LOG("Parser returned: %d commands, %d assets, %d characters",
+            demo->script->command_count, demo->script->asset_count, 
+            demo->script->character_count);
+    
+    if (demo->script->command_count == 0) {
+        CVN_LOG("WARNING: No commands loaded, using fallback");
+        /* Set a simple background as fallback */
+        cvn_api_set_background(engine, "fs:/vol/content/bg_school.jpg");
+        strncpy(demo->current_speaker, "System", sizeof(demo->current_speaker));
+        strncpy(demo->current_text, "CVN script file not found. Press A to exit.", sizeof(demo->current_text));
+        demo->text_complete = true;
+        return;
     }
     
-    /* Show/hide characters */
-    if (line->show_chocola && line->chocola_expr[0]) {
-        cvn_api_show_sprite(demo->engine, line->chocola_expr, "chocola", "actors", 
-                           0.25f, 0.75f, 0.85f);
-        
-        /* Apply Chocola's style with native C */
-        CVNInstance *chocola = VN_FindInstance(demo->engine, "chocola");
-        if (chocola) {
-            chocola->tint = 0xFFE6F2FF; /* Warm pink tint */
-            chocola->z = 120;
-            chocola->anchor_y = 1.0f; /* Bottom anchor */
-        }
-    } else {
-        cvn_api_hide(demo->engine, "chocola");
+    CVN_LOG("Loaded script successfully");
+    
+    /* Initialize text renderer */
+    CVN_LOG("Initializing text renderer...");
+    demo->text_renderer = cvn_text_init();
+    if (demo->text_renderer) {
+        CVN_LOG("Loading fonts...");
+        demo->dialogue_font = cvn_text_load_font(demo->text_renderer, "fs:/vol/content/font.ttf", 24);
+        demo->name_font = cvn_text_load_font(demo->text_renderer, "fs:/vol/content/font.ttf", 20);
+        demo->ui_font = cvn_text_load_font(demo->text_renderer, "fs:/vol/content/font.ttf", 18);
+        CVN_LOG("Fonts loaded");
     }
     
-    if (line->show_vanilla && line->vanilla_expr[0]) {
-        cvn_api_show_sprite(demo->engine, line->vanilla_expr, "vanilla", "actors",
-                           0.75f, 0.75f, 0.85f);
-        
-        CVNInstance *vanilla = VN_FindInstance(demo->engine, "vanilla");
-        if (vanilla) {
-            vanilla->tint = 0xE6F0FFFF; /* Cool blue tint */
-            vanilla->z = 115;
-            vanilla->anchor_y = 1.0f;
-        }
-    } else {
-        cvn_api_hide(demo->engine, "vanilla");
+    CVN_LOG("Setting display routing...");
+    /* Set display routing */
+    CVNRenderer *renderer = cvn_get_renderer(engine);
+    cvn_renderer_set_layer_display(renderer, "background", CVN_DISPLAY_PRIMARY);
+    cvn_renderer_set_layer_display(renderer, "actors", CVN_DISPLAY_PRIMARY);
+    cvn_renderer_set_layer_display(renderer, "overlay", CVN_DISPLAY_PRIMARY);
+    cvn_renderer_set_layer_display(renderer, "ui", CVN_DISPLAY_SECONDARY);
+    
+    /* Execute first command */
+    CVN_LOG("Executing first command...");
+    if (demo->script->command_count > 0) {
+        nekopara_execute_command(demo, &demo->script->commands[0]);
     }
     
-    /* Reset typewriter */
-    demo->typewriter_timer = 0.0f;
-    demo->visible_chars = 0;
-    demo->text_complete = false;
-    
-    CVN_LOG("[%s]: %s", line->speaker, line->text);
+    CVN_LOG("=== Nekopara Demo Initialized ===");
 }
 
-static void nekopara_update(NekoparaDemo *demo, float delta_time) {
-    DialogueLine *line = &demo->script[demo->current_line];
-    
-    /* Typewriter effect */
-    if (!demo->text_complete) {
-        demo->typewriter_timer += delta_time;
-        
-        if (demo->typewriter_timer >= TYPEWRITER_SPEED) {
-            demo->typewriter_timer = 0.0f;
-            demo->visible_chars++;
-            
-            if (demo->visible_chars >= (int)strlen(line->text)) {
-                demo->text_complete = true;
-            }
-        }
-    }
-    
-    /* Character breathing animations */
-    demo->anim_time += delta_time;
-    demo->chocola_breath = sinf(demo->anim_time * 2.0f) * 0.008f;
-    demo->vanilla_breath = sinf(demo->anim_time * 1.5f + 1.0f) * 0.006f;
-    
-    /* Apply breathing to characters */
-    CVNInstance *chocola = VN_FindInstance(demo->engine, "chocola");
-    if (chocola && chocola->active) {
-        chocola->y = 0.75f + demo->chocola_breath;
-        /* Subtle rotation for liveliness */
-        chocola->rotation = sinf(demo->anim_time * 1.2f) * 1.5f;
-    }
-    
-    CVNInstance *vanilla = VN_FindInstance(demo->engine, "vanilla");
-    if (vanilla && vanilla->active) {
-        vanilla->y = 0.75f + demo->vanilla_breath;
-        vanilla->rotation = sinf(demo->anim_time * 0.9f + 0.5f) * 1.0f;
+static void nekopara_advance_dialogue(NekoparaDemo *demo) {
+    if (demo->current_command < demo->script->command_count - 1) {
+        demo->current_command++;
+        CVN_LOG("Advancing to command %d/%d (type=%d)", demo->current_command, demo->script->command_count, demo->script->commands[demo->current_command].type);
+        nekopara_execute_command(demo, &demo->script->commands[demo->current_command]);
+    } else {
+        CVN_LOG("Reached end of script, exiting");
+        demo->running = false;
     }
 }
 
 static void nekopara_handle_input(NekoparaDemo *demo, SDL_Event *event) {
+    bool advance = false;
+    
     if (event->type == SDL_KEYDOWN) {
-        switch (event->key.keysym.sym) {
-            case SDLK_SPACE:
-            case SDLK_RETURN:
-                if (demo->text_complete) {
-                    /* Advance to next line */
-                    demo->current_line++;
-                    if (demo->current_line < demo->script_length) {
-                        nekopara_load_line(demo);
-                    } else {
-                        demo->running = false;
-                    }
-                } else {
-                    /* Skip typewriter */
-                    demo->visible_chars = strlen(demo->script[demo->current_line].text);
-                    demo->text_complete = true;
-                }
-                break;
-                
-            case SDLK_ESCAPE:
-                demo->running = false;
-                break;
+        if (event->key.keysym.sym == SDLK_SPACE || event->key.keysym.sym == SDLK_RETURN) {
+            advance = true;
+        } else if (event->key.keysym.sym == SDLK_ESCAPE) {
+            demo->running = false;
+        }
+    }
+#ifdef __WIIU__
+    else if (event->type == SDL_JOYBUTTONDOWN && event->jbutton.which == 0) {
+        if (event->jbutton.button == 0) advance = true;
+        else if (event->jbutton.button == 1) demo->running = false;
+    }
+    else if (event->type == SDL_CONTROLLERBUTTONDOWN && event->cbutton.which == 0) {
+        if (event->cbutton.button == SDL_CONTROLLER_BUTTON_A) advance = true;
+        else if (event->cbutton.button == SDL_CONTROLLER_BUTTON_B) demo->running = false;
+    }
+#else
+    else if (event->type == SDL_JOYBUTTONDOWN || event->type == SDL_CONTROLLERBUTTONDOWN) {
+        int button = (event->type == SDL_JOYBUTTONDOWN) ? event->jbutton.button : event->cbutton.button;
+        if (button == 0 || button == SDL_CONTROLLER_BUTTON_A) advance = true;
+        else if (button == 1 || button == SDL_CONTROLLER_BUTTON_B) demo->running = false;
+    }
+#endif
+    
+    if (advance) {
+        CVN_LOG("ADVANCE pressed! text_complete=%d", demo->text_complete);
+        if (demo->text_complete) {
+            nekopara_advance_dialogue(demo);
+        } else {
+            /* Skip typewriter effect */
+            demo->visible_chars = strlen(demo->current_text);
+            demo->text_complete = true;
+            CVN_LOG("Skipped typewriter, showing full text");
         }
     }
 }
 
-static void nekopara_render_dialogue_box(NekoparaDemo *demo, SDL_Renderer *renderer, 
-                                         int screen_w, int screen_h) {
-    if (!demo->dialogue_font) return;
+static void nekopara_update(NekoparaDemo *demo, float delta_time) {
+    demo->anim_time += delta_time;
     
-    DialogueLine *line = &demo->script[demo->current_line];
+    /* Typewriter effect */
+    if (!demo->text_complete && demo->current_text[0]) {
+        demo->typewriter_timer += delta_time;
+        int target_chars = (int)(demo->typewriter_timer / TYPEWRITER_SPEED);
+        int max_chars = strlen(demo->current_text);
+        
+        if (target_chars >= max_chars) {
+            demo->visible_chars = max_chars;
+            demo->text_complete = true;
+        } else {
+            demo->visible_chars = target_chars;
+        }
+    }
+}
+
+static void nekopara_render_dialogue_box(NekoparaDemo *demo, SDL_Renderer *renderer, int screen_w, int screen_h) {
+    if (!demo->current_text[0] || !demo->dialogue_font) return;
     
-    /* Dialogue box background (semi-transparent) */
-    SDL_Rect box = {
-        .x = screen_w * 0.05f,
-        .y = screen_h * 0.70f,
-        .w = screen_w * 0.90f,
-        .h = screen_h * 0.25f
-    };
-    
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 200);
+    /* Draw dialogue box - bigger and lower on screen */
+    SDL_Rect box = { 40, screen_h - 250, screen_w - 80, 210 };
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 220);
     SDL_RenderFillRect(renderer, &box);
-    
-    /* Border */
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderDrawRect(renderer, &box);
     
-    /* Speaker name box */
-    if (line->speaker[0] && demo->name_font) {
-        SDL_Rect name_box = {
-            .x = box.x,
-            .y = box.y - 35,
-            .w = 250,
-            .h = 35
-        };
-        
-        /* Color based on speaker */
-        SDL_Color name_bg_color = {150, 150, 150, 255}; /* Default gray */
-        if (strcmp(line->speaker, "Chocola") == 0) {
-            name_bg_color = (SDL_Color){255, 182, 193, 255}; /* Pink */
-        } else if (strcmp(line->speaker, "Vanilla") == 0) {
-            name_bg_color = (SDL_Color){173, 216, 230, 255}; /* Light blue */
-        }
-        
-        SDL_SetRenderDrawColor(renderer, name_bg_color.r, name_bg_color.g, name_bg_color.b, name_bg_color.a);
-        SDL_RenderFillRect(renderer, &name_box);
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-        SDL_RenderDrawRect(renderer, &name_box);
-        
-        /* Render speaker name */
-        SDL_Color text_color = {255, 255, 255, 255};
-        cvn_text_draw(renderer, demo->name_font, line->speaker,
-                     name_box.x + 10, name_box.y + 7, text_color);
+    /* Draw speaker name - above the box */
+    if (demo->current_speaker[0] && demo->name_font) {
+        SDL_Color name_color = {255, 200, 100, 255};
+        cvn_text_draw(renderer, demo->name_font, demo->current_speaker, 60, screen_h - 270, name_color);
     }
     
-    /* Render dialogue text with typewriter effect */
-    if (line->text[0] && demo->dialogue_font) {
-        /* Create substring for typewriter */
-        char visible_text[MAX_DIALOGUE_LENGTH];
-        int chars_to_show = demo->visible_chars < strlen(line->text) ? 
-                           demo->visible_chars : strlen(line->text);
-        strncpy(visible_text, line->text, chars_to_show);
-        visible_text[chars_to_show] = '\0';
-        
-        SDL_Color text_color = {255, 255, 255, 255};
-        int text_area_width = box.w - 40;
-        
-        cvn_text_draw_wrapped(renderer, demo->dialogue_font, visible_text,
-                             box.x + 20, box.y + 15, text_area_width,
-                             text_color, 5);
-    }
+    /* Draw text with typewriter effect - properly inside box */
+    char visible_text[MAX_DIALOGUE_LENGTH];
+    strncpy(visible_text, demo->current_text, demo->visible_chars);
+    visible_text[demo->visible_chars] = '\0';
     
-    /* Continue indicator if text is complete */
-    if (demo->text_complete) {
-        int indicator_x = box.x + box.w - 30;
-        int indicator_y = box.y + box.h - 20;
-        
-        /* Blinking triangle */
-        if ((int)(demo->anim_time * 2.0f) % 2 == 0) {
-            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-            SDL_RenderDrawLine(renderer, indicator_x, indicator_y, 
-                             indicator_x + 10, indicator_y + 10);
-            SDL_RenderDrawLine(renderer, indicator_x + 10, indicator_y + 10,
-                             indicator_x + 20, indicator_y);
-        }
-    }
+    SDL_Color text_color = {255, 255, 255, 255};
+    /* Text starts 20px from top of box, 20px from left edge */
+    cvn_text_draw_wrapped(renderer, demo->dialogue_font, visible_text, 
+                          60, screen_h - 230, screen_w - 120, text_color, 5);
 }
 
-static void nekopara_render_ui(NekoparaDemo *demo, SDL_Renderer *renderer,
-                               int screen_w, int screen_h) {
+static void nekopara_render_ui(NekoparaDemo *demo, SDL_Renderer *renderer, int screen_w, int screen_h) {
     if (!demo->ui_font) return;
     
-    /* Status bar */
-    SDL_Rect status = { 0, 0, screen_w, 40 };
-    SDL_SetRenderDrawColor(renderer, 40, 40, 40, 255);
-    SDL_RenderFillRect(renderer, &status);
-    
-    /* Title */
     SDL_Color white = {255, 255, 255, 255};
-    cvn_text_draw(renderer, demo->ui_font, "Nekopara Demo - GamePad Display",
-                 10, 10, white);
-    
-    /* Controls help box */
-    SDL_Rect help_box = {
-        .x = 20,
-        .y = screen_h / 2 - 100,
-        .w = screen_w - 40,
-        .h = 200
-    };
-    
-    SDL_SetRenderDrawColor(renderer, 50, 50, 50, 220);
-    SDL_RenderFillRect(renderer, &help_box);
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderDrawRect(renderer, &help_box);
-    
-    /* Controls text */
-    int text_y = help_box.y + 15;
-    int line_height = 30;
-    SDL_Color cyan = {100, 200, 255, 255};
-    
-    cvn_text_draw(renderer, demo->ui_font, "CONTROLS:", help_box.x + 15, text_y, cyan);
-    text_y += line_height;
-    cvn_text_draw(renderer, demo->ui_font, "SPACE/A - Advance dialogue", 
-                 help_box.x + 25, text_y, white);
-    text_y += line_height;
-    cvn_text_draw(renderer, demo->ui_font, "ESC/B - Exit demo",
-                 help_box.x + 25, text_y, white);
-    text_y += line_height + 10;
-    
-    /* Progress indicator */
-    char progress_text[64];
-    snprintf(progress_text, sizeof(progress_text), "Line %d / %d", 
-            demo->current_line + 1, demo->script_length);
-    cvn_text_draw(renderer, demo->ui_font, progress_text,
-                 help_box.x + 15, text_y, cyan);
-    
-    /* Progress bar */
-    SDL_Rect progress_bg = {
-        .x = 20,
-        .y = screen_h - 60,
-        .w = screen_w - 40,
-        .h = 20
-    };
-    
-    SDL_SetRenderDrawColor(renderer, 60, 60, 60, 255);
-    SDL_RenderFillRect(renderer, &progress_bg);
-    
-    int progress_width = (screen_w - 40) * demo->current_line / demo->script_length;
-    SDL_Rect progress_fill = {
-        .x = 20,
-        .y = screen_h - 60,
-        .w = progress_width,
-        .h = 20
-    };
-    
-    SDL_SetRenderDrawColor(renderer, 100, 200, 255, 255);
-    SDL_RenderFillRect(renderer, &progress_fill);
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderDrawRect(renderer, &progress_bg);
+    char progress[64];
+    snprintf(progress, sizeof(progress), "Command %d/%d", 
+             demo->current_command + 1, demo->script->command_count);
+    cvn_text_draw(renderer, demo->ui_font, progress, 20, 20, white);
 }
 
-int nekopara_demo_run(void) {
-    CVN_LOG_INIT();
+int main(int argc, char *argv[]) {
+    (void)argc; (void)argv;
     
+    CVN_LOG_INIT();
     CVN_LOG("════════════════════════════════════════════════");
     CVN_LOG("     CVN Engine - Nekopara VN Demo (Wii U)     ");
     CVN_LOG("════════════════════════════════════════════════");
     CVN_LOG("");
-    CVN_LOG("Features Demonstrated:");
+    CVN_LOG("Features:");
+    CVN_LOG("  • CVN script parsing (.cvn files)");
     CVN_LOG("  • Dual-screen rendering (TV + Gamepad)");
-    CVN_LOG("  • Character sprites with expressions");
-    CVN_LOG("  • Breathing animations");
     CVN_LOG("  • Typewriter dialogue effect");
-    CVN_LOG("  • Background scenes");
-    CVN_LOG("  • Native C sprite manipulation");
-    CVN_LOG("  • Per-layer display routing");
     CVN_LOG("");
     CVN_LOG("Controls:");
-    CVN_LOG("  SPACE/ENTER/A - Advance dialogue");
-    CVN_LOG("  ESC/B - Exit demo");
+    CVN_LOG("  A/SPACE/ENTER - Advance dialogue");
+    CVN_LOG("  B/ESC - Exit");
     CVN_LOG("");
     
-    /* Configure CVN for Wii U dual-screen */
+    CVN_LOG("main: Creating CVN config...");
+    
+    /* Initialize CVN Engine */
     CVNConfig config = {
-        .title = "Nekopara VN Demo - TV",
-        .window_width = 1920,  /* Wii U TV: 1920x1080 */
+        .title = "CVN Nekopara Demo",
+        .window_width = 1920,
         .window_height = 1080,
         .fullscreen = false,
-        .vsync = true,
-        
         .enable_secondary_display = true,
-        .secondary_width = 854,   /* Wii U GamePad: 854x480 */
-        .secondary_height = 480,
-        .secondary_title = "Nekopara - GamePad UI",
-        
-        .asset_base_path = "content",
-        .script_path = NULL,
-        
-        .target_fps = 60,
-        .audio_channels = 16,
-        .audio_frequency = 48000  /* Wii U native frequency */
+        .secondary_width = 854,
+        .secondary_height = 480
     };
+    
+    CVN_LOG("main: Calling cvn_init...");
     
     CVNEngine *engine = cvn_init(&config);
     if (!engine) {
-        fprintf(stderr, "Failed to initialize CVN engine: %s\n", cvn_get_error());
+        CVN_LOG("ERROR: Failed to initialize CVN Engine");
         return 1;
     }
     
+    CVN_LOG("main: Engine initialized! Calling nekopara_init...");
+    
+    /* Initialize demo */
     NekoparaDemo demo;
     nekopara_init(&demo, engine);
     
-    /* Load first line */
-    nekopara_load_line(&demo);
+    CVN_LOG("Starting main loop...");
+    CVN_LOG("");
     
-    printf("Demo running...\n\n");
+    /* Get the joystick for manual polling */
+    SDL_Joystick *gamepad = NULL;
+    if (SDL_NumJoysticks() > 0) {
+        gamepad = SDL_JoystickOpen(0);
+    }
+    
+    bool last_button_state = false;
     
     /* Main loop */
     while (demo.running && cvn_update(engine)) {
         float delta_time = cvn_get_delta_time(engine);
+        
+        /* Manual joystick polling for Wii U */
+        if (gamepad) {
+            bool button_pressed = SDL_JoystickGetButton(gamepad, 0); /* A button */
+            if (button_pressed && !last_button_state) {
+                CVN_LOG("A BUTTON PRESSED (manual poll)");
+                if (demo.text_complete) {
+                    nekopara_advance_dialogue(&demo);
+                } else {
+                    demo.visible_chars = strlen(demo.current_text);
+                    demo.text_complete = true;
+                }
+            }
+            last_button_state = button_pressed;
+        }
         
         /* Handle events */
         SDL_Event event;
@@ -496,45 +346,54 @@ int nekopara_demo_run(void) {
             if (event.type == SDL_QUIT) {
                 demo.running = false;
             }
+            
+            /* Debug all events */
+            if (event.type == SDL_KEYDOWN) {
+                CVN_LOG("KEY: %d", event.key.keysym.sym);
+            } else if (event.type == SDL_JOYBUTTONDOWN) {
+                CVN_LOG("JOYBUTTON: device=%d button=%d", event.jbutton.which, event.jbutton.button);
+            } else if (event.type == SDL_CONTROLLERBUTTONDOWN) {
+                CVN_LOG("CONTROLLERBUTTON: device=%d button=%d", event.cbutton.which, event.cbutton.button);
+            }
+            
             nekopara_handle_input(&demo, &event);
         }
         
-        /* Update logic */
+        /* Update */
         nekopara_update(&demo, delta_time);
         
-        /* Render to both screens */
+        /* Render */
         CVNRenderer *renderer = cvn_get_renderer(engine);
-        
-        /* CVN engine handles layer-based rendering */
-        cvn_renderer_clear(renderer);
-        cvn_renderer_draw(renderer);
-        
-        /* Custom overlay rendering */
         CVNWindowManager *wm = cvn_get_window_manager(engine);
         SDL_Renderer *tv_renderer = cvn_window_get_renderer(wm, CVN_DISPLAY_PRIMARY);
         SDL_Renderer *gamepad_renderer = cvn_window_get_renderer(wm, CVN_DISPLAY_SECONDARY);
         
-        /* Draw dialogue box on TV */
+        cvn_renderer_clear(renderer);
+        cvn_renderer_draw(renderer);
+        
         if (tv_renderer) {
             nekopara_render_dialogue_box(&demo, tv_renderer, 1920, 1080);
         }
         
-        /* Draw UI on gamepad */
         if (gamepad_renderer) {
             nekopara_render_ui(&demo, gamepad_renderer, 854, 480);
         }
         
         cvn_renderer_present(renderer);
-        
-        SDL_Delay(16); /* ~60 FPS */
+        SDL_Delay(16);
     }
-    
-    cvn_shutdown(engine);
     
     CVN_LOG("");
     CVN_LOG("Demo completed!");
-    CVN_LOG("Thank you for trying CVN Engine on Wii U!");
     
+    if (demo.text_renderer) {
+        cvn_text_shutdown(demo.text_renderer);
+    }
+    if (demo.script) {
+        cvn_free(demo.script);
+        free(demo.script);
+    }
+    cvn_shutdown(engine);
     CVN_LOG_SHUTDOWN();
     
     return 0;

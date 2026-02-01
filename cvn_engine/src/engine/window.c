@@ -9,10 +9,19 @@ CVNWindowManager* cvn_window_init(const char *title, int width, int height, bool
     CVNWindowManager *wm = calloc(1, sizeof(CVNWindowManager));
     if (!wm) return NULL;
 
+    /* Wii U-specific display flags */
+#ifdef __WIIU__
+    #define SDL_WINDOW_WIIU_TV_ONLY 0x02000000
+    #define SDL_WINDOW_WIIU_GAMEPAD_ONLY 0x01000000
+#endif
+
     uint32_t flags = SDL_WINDOW_SHOWN;
     if (fullscreen) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 
-    /* Create primary display */
+    /* Create primary display (TV on Wii U) */
+#ifdef __WIIU__
+    flags |= SDL_WINDOW_WIIU_TV_ONLY;
+#endif
     wm->displays[CVN_DISPLAY_PRIMARY].window = SDL_CreateWindow(
         title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         width, height, flags
@@ -48,6 +57,12 @@ CVNWindowManager* cvn_window_init(const char *title, int width, int height, bool
         int display_count = SDL_GetNumVideoDisplays();
         int x_pos = SDL_WINDOWPOS_CENTERED;
         
+        uint32_t secondary_flags = SDL_WINDOW_SHOWN;
+        
+#ifdef __WIIU__
+        /* GamePad-only on Wii U */
+        secondary_flags |= SDL_WINDOW_WIIU_GAMEPAD_ONLY;
+#else
         if (display_count > 1) {
             SDL_Rect bounds;
             SDL_GetDisplayBounds(1, &bounds);
@@ -55,11 +70,12 @@ CVNWindowManager* cvn_window_init(const char *title, int width, int height, bool
         } else {
             x_pos = width + 50; /* Offset from primary */
         }
+#endif
 
         wm->displays[CVN_DISPLAY_SECONDARY].window = SDL_CreateWindow(
             secondary_title ? secondary_title : "CVN - Secondary Display",
             x_pos, SDL_WINDOWPOS_CENTERED,
-            secondary_width, secondary_height, SDL_WINDOW_SHOWN
+            secondary_width, secondary_height, secondary_flags
         );
 
         if (wm->displays[CVN_DISPLAY_SECONDARY].window) {

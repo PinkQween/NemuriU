@@ -1,4 +1,5 @@
 #include "resource.h"
+#include "log.h"
 #include <SDL_image.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,35 +46,65 @@ CVNResourceManager* cvn_resource_init(const char *base_path) {
 SDL_Texture* cvn_resource_load_texture(CVNResourceManager *rm, SDL_Renderer *renderer, const char *path) {
     if (!rm || !renderer || !path) return NULL;
     
+    CVN_LOG("Loading texture: %s", path);
+    
     /* Check if already loaded */
     for (int i = 0; i < rm->resource_count; i++) {
         if (strcmp(rm->resources[i].path, path) == 0 && rm->resources[i].loaded) {
+            CVN_LOG("Texture found in cache");
             return rm->resources[i].texture;
         }
     }
     
-    /* Build full path */
+    /* Build full path with platform-specific prefixes */
     char full_path[MAX_PATH_LEN];
+    SDL_Surface *surface = NULL;
+    
+    /* Try original path first */
     if (rm->base_path[0]) {
         snprintf(full_path, sizeof(full_path), "%s/%s", rm->base_path, path);
     } else {
         strncpy(full_path, path, sizeof(full_path) - 1);
     }
     
-    /* Load texture */
-    SDL_Surface *surface = IMG_Load(full_path);
+    surface = IMG_Load(full_path);
+    
+#ifdef __WIIU__
+    /* Try Wii U WUHB path: fs:/vol/content/ */
     if (!surface) {
-        fprintf(stderr, "Failed to load image %s: %s\n", full_path, IMG_GetError());
+        const char *filename = path;
+        if (strncmp(path, "content/", 8) == 0) {
+            filename = path + 8;
+        }
+        snprintf(full_path, sizeof(full_path), "fs:/vol/content/%s", filename);
+        CVN_LOG("Trying Wii U path: %s", full_path);
+        surface = IMG_Load(full_path);
+    }
+#else
+    /* Try with different path variations for desktop */
+    if (!surface && path[0] != '/') {
+        snprintf(full_path, sizeof(full_path), "/%s", path);
+        CVN_LOG("Trying alternate path: %s", full_path);
+        surface = IMG_Load(full_path);
+    }
+#endif
+    
+    if (!surface) {
+        CVN_LOG("ERROR: IMG_Load failed for %s: %s", path, IMG_GetError());
         return NULL;
     }
+    
+    CVN_LOG("Surface loaded successfully (%dx%d)", surface->w, surface->h);
     
     SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_FreeSurface(surface);
     
     if (!texture) {
-        fprintf(stderr, "Failed to create texture from %s: %s\n", full_path, SDL_GetError());
+        CVN_LOG("ERROR: SDL_CreateTextureFromSurface failed: %s", SDL_GetError());
         return NULL;
     }
+    
+    CVN_LOG("Texture created successfully");
     
     /* Cache the texture */
     if (rm->resource_count < MAX_RESOURCES) {
@@ -81,9 +112,9 @@ SDL_Texture* cvn_resource_load_texture(CVNResourceManager *rm, SDL_Renderer *ren
         strncpy(entry->path, path, sizeof(entry->path) - 1);
         entry->texture = texture;
         entry->loaded = true;
+        CVN_LOG("Texture cached (total: %d)", rm->resource_count);
     }
     
-    printf("Loaded texture: %s\n", path);
     return texture;
 }
 

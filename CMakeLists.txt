@@ -44,7 +44,6 @@ else()
 endif()
 
 add_executable(NemuriU
-    src/main.c
     src/nekopara_demo.c
     ${CVN_SOURCES}
 )

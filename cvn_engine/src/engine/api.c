@@ -1,4 +1,5 @@
 #include "api.h"
+#include "log.h"
 #include "window.h"
 #include "audio.h"
 #include <string.h>
@@ -73,6 +74,27 @@ bool cvn_api_show_sprite(CVNEngine *engine, const char *sprite_path, const char 
     inst->src_rect.y = 0;
     inst->src_rect.w = w;
     inst->src_rect.h = h;
+    
+    /* Special handling for backgrounds: scale to fill screen */
+    if (strcmp(layer_name, "background") == 0) {
+        /* Get screen dimensions */
+        CVNWindowManager *wm = engine->window_manager;
+        int screen_w = wm->displays[CVN_DISPLAY_PRIMARY].width;
+        int screen_h = wm->displays[CVN_DISPLAY_PRIMARY].height;
+        
+        /* Calculate scale to fill screen while maintaining aspect ratio */
+        float scale_x = (float)screen_w / (float)w;
+        float scale_y = (float)screen_h / (float)h;
+        inst->scale = (scale_x > scale_y) ? scale_x : scale_y;
+        
+        /* Center the background */
+        inst->x = 0.5f;
+        inst->y = 0.5f;
+        inst->anchor_x = 0.5f;
+        inst->anchor_y = 0.5f;
+        
+        CVN_LOG("Background scaled to fill screen: %dx%d -> %.2fx", w, h, inst->scale);
+    }
     
     return true;
 }

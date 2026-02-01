@@ -29,11 +29,11 @@ character Narrator {
 /* Asset Definitions */
 
 /* Backgrounds */
-asset bg cafe_exterior = "bg/cafe_exterior.png";
-asset bg cafe_interior = "bg/cafe_day.png";
-asset bg kitchen       = "bg/kitchen.png";
-asset bg bedroom       = "bg/bedroom.png";
-asset bg park          = "bg/park.png";
+asset bg cafe_exterior = "cafe_exterior.jpg";
+asset bg cafe_interior = "cafe_interior.jpg";
+asset bg kitchen       = "bg_school.jpg";
+asset bg bedroom       = "bg_school.jpg";
+asset bg park          = "bg_school.jpg";
 
 /* Chocola Expressions */
 asset sprite chocola_neutral  = "ch/chocola_neutral.png";
@@ -207,6 +207,78 @@ start {
     
     say(Chocola, "Nyaa~! Good morning everyone! ♪");
     say(Chocola, "It's such a beautiful day! Perfect for making delicious cakes!");
+    
+    /* Vanilla enters calmly */
+    show Vanilla sprite vanilla_neutral as "vanilla"
+        use char_right
+    {
+        z: 120;
+        tint: 0xfff0f8ff;  /* Cool blue tint */
+    };
+    with move(0.3);
+    
+    say(Vanilla, "Good morning... Chocola is being energetic as usual...");
+    say(Chocola, "Vanilla! We should start preparing for today's customers!");
+    say(Vanilla, "...Chocola, you forgot to tie your apron again.");
+    
+    show Chocola sprite chocola_blush;
+    say(Chocola, "Nyaaa! I-I'll fix it right away!");
+    
+    show Vanilla sprite vanilla_smile;
+    say(Vanilla, "Fufu... some things never change.");
+    
+    /* Kashou enters */
+    scene bg cafe_interior;
+    say(Kashou, "Good morning, you two. Ready for another busy day?");
+    say(Chocola, "Yes, Master! We're always ready!");
+    say(Vanilla, "...Master looks tired. Did you stay up late experimenting with recipes again?");
+    say(Kashou, "Haha, you know me too well, Vanilla.");
+    
+    say(Narrator, "The morning sunlight streams through the café windows...");
+    say(Narrator, "As the smell of fresh pastries fills the air.");
+    say(Narrator, "Another peaceful day at La Soleil begins.");
+    
+    /* Customer interactions */
+    say(Chocola, "Ah! Our first customer is here! Welcome to La Soleil!");
+    say(Vanilla, "...What would you like to order?");
+    say(Narrator, "A regular customer enters, greeted by the warm smiles of the catgirls.");
+    
+    say(Kashou, "I'll prepare the Mont Blanc cake. Chocola, can you help with the whipped cream?");
+    say(Chocola, "Yes! Leave it to me! ♪");
+    say(Vanilla, "...I'll handle the drinks.");
+    
+    /* Afternoon scene */
+    say(Narrator, "As the afternoon arrives, the café becomes busier...");
+    say(Chocola, "Thank you for coming! Please visit again!");
+    say(Vanilla, "...The macarons are selling well today.");
+    say(Kashou, "Great work, everyone. Let's keep this energy going!");
+    
+    say(Chocola, "Master, can we try making a new dessert tomorrow?");
+    say(Kashou, "What did you have in mind?");
+    say(Chocola, "How about a strawberry shortcake with extra cream and a chocolate drizzle?");
+    say(Vanilla, "...That sounds very Chocola-like. Too sweet.");
+    say(Chocola, "Eh?! Vanilla, you're so mean!");
+    say(Vanilla, "Fufu... but it does sound delicious.");
+    
+    /* Evening closing */
+    say(Narrator, "As the sun begins to set, the café prepares to close for the day.");
+    say(Kashou, "Alright, let's clean up and call it a day.");
+    say(Chocola, "Today was so much fun!");
+    say(Vanilla, "...Tomorrow will be another busy day.");
+    say(Narrator, "The warm glow of the setting sun fills the café...");
+    say(Narrator, "As another wonderful day at La Soleil comes to an end.");
+    
+    say(Chocola, "Good night, everyone! Sweet dreams! ♥");
+    say(Vanilla, "...Good night.");
+    say(Kashou, "Rest well. Tomorrow's a new day.");
+    
+    say(Narrator, "And so, the story of La Soleil continues...");
+    say(Narrator, "With love, laughter, and the sweetest treats in town.");
+    say(Narrator, "Thank you for visiting La Soleil!");
+    
+    /* THE END */
+    scene bg cafe_exterior;
+    pause 2.0;
     
     /* Vanilla enters calmly */
     show Vanilla sprite vanilla_neutral as "vanilla"
