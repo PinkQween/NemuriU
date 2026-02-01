@@ -1,0 +1,177 @@
+/* =========================================================
+   VN-C DSL (author-friendly, C-shaped, powerful)
+   ========================================================= */
+
+/* -------------------------
+   Characters (identity only)
+   ------------------------- */
+
+character Chocola {
+    display_name: "Chocola";
+    name_color: 0xff69b4;
+    voice_tag: "chocola";
+}
+
+character Vanilla {
+    display_name: "Vanilla";
+    name_color: 0x87cefa;
+    voice_tag: "vanilla";
+}
+
+character Narrator {
+    display_name: "";
+    name_color: 0xffffff;
+}
+
+/* -------------------------
+   Assets (pure references)
+   ------------------------- */
+
+asset bg cafe_day        = "bg/cafe_day.png";
+asset bg kitchen_morning = "bg/kitchen_morning.png";
+
+asset sprite chocola_neutral = "ch/chocola_neutral.png";
+asset sprite chocola_happy   = "ch/chocola_happy.png";
+asset sprite chocola_pout    = "ch/chocola_pout.png";
+
+asset sprite vanilla_smile   = "ch/vanilla_smile.png";
+
+asset music cafe_theme = "audio/bgm/cafe_theme.ogg";
+asset sfx bell         = "audio/sfx/bell.wav";
+
+/* -------------------------
+   Optional: reusable styles
+   (keeps scripts clean)
+   ------------------------- */
+
+style actor_left {
+    layer: "actors";
+    x: 0.18; y: 0.82;
+    anchor_x: 0.5; anchor_y: 1.0;     // bottom-center anchor
+    scale: 1.00;
+    alpha: 1.0;
+    rotation: 0.0;
+    tint: 0xffffff;
+    z: 100;
+}
+
+style actor_right {
+    layer: "actors";
+    x: 0.82; y: 0.82;
+    anchor_x: 0.5; anchor_y: 1.0;
+    scale: 1.00;
+    alpha: 1.0;
+    rotation: 0.0;
+    tint: 0xffffff;
+    z: 110;
+}
+
+style ui_banner {
+    layer: "overlay";
+    x: 0.50; y: 0.10;
+    anchor_x: 0.5; anchor_y: 0.5;
+    scale: 1.0;
+    alpha: 1.0;
+    z: 1000;
+}
+
+/* =========================================================
+   Story
+   ========================================================= */
+
+start {
+    /* Background + audio */
+    scene bg cafe_day;
+    with fade(0.5);
+
+    music play cafe_theme loop fade_in 1.0;
+    sfx play bell;
+
+    /* Show actors: visual state is separate from dialogue */
+    show Chocola sprite chocola_neutral as "chocola"
+        use actor_left
+    {
+        // override a few style fields if needed
+        z: 120;                  // in front of most actors
+        tint: 0xffe6f2;          // slight warm tint
+    };
+
+    show Vanilla sprite vanilla_smile as "vanilla"
+        use actor_right
+    {
+        z: 115;
+        alpha: 0.95;
+    };
+
+    /* Dialogue stays simple */
+    say(Chocola, "Nyaa... I'm starving!");
+    say(Vanilla, "You ate like five minutes ago.");
+    say(Chocola, "That was then. This is now.");
+
+    /* Swap expression without changing placement */
+    show "chocola" sprite chocola_pout {
+        // keep position/scale from existing instance
+        // only change what’s specified
+        tint: 0xffffff;
+    };
+    with dissolve(0.25);
+
+    say(Chocola, "I'm making my serious face.");
+
+    /* Example: z-index + layer manipulation */
+    show "vanilla" {
+        z: 200;          // Vanilla steps in front
+        x: 0.74;         // scoot slightly toward center
+        scale: 1.02;
+    };
+    with move(0.25);
+
+    say(Vanilla, "No bullying the kitchen. We share.");
+
+    /* Example: UI overlay element on separate layer */
+    show ui text "Tip: Click to advance" as "hint"
+        use ui_banner
+    {
+        alpha: 0.85;
+    };
+
+    pause 0.8;
+    hide "hint" with fade(0.2);
+
+    /* Move to a new background but keep actors unless cleared */
+    scene bg kitchen_morning;
+    with fade(0.4);
+
+    say(Narrator, "The smell of toast fills the room.");
+
+    /* Native C remains the “power door” */
+    native "c" {
+        // Example: advanced users can access live instances by id.
+        // Engine injects: VN_Instance* VN_FindInstance(const char* id);
+        // and a Character* lookup too, depending on your design.
+
+        VN_Instance* chocola = VN_FindInstance("chocola");
+        if (chocola) {
+            chocola->z = 999;       // absolute top (except UI)
+            chocola->tint = 0xff99dd;
+            chocola->rotation = -2.0f;
+            VN_CommitInstance(chocola);
+        }
+    }
+
+    say(Chocola, "Behold! I am now extremely important.");
+}
+
+/* =========================================================
+   Notes on the model (how it’s “complicated” / powerful)
+   =========================================================
+   - character: identity + dialogue styling only
+   - asset: file references only
+   - show/hide: creates or edits *instances* on screen
+       instance fields:
+         id, character (optional), sprite, layer, z,
+         x/y, anchor_x/y, scale, alpha, rotation, tint,
+         flip_x/flip_y (easy add), blend/shader (easy add)
+   - say(): only dialogue, with {field} interpolation if you want:
+         say(Chocola, "My name is {display_name}");
+*/

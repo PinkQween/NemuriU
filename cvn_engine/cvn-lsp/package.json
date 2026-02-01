@@ -1,0 +1,98 @@
+{
+  "name": "cvn",
+  "displayName": "CVN Language Support",
+  "description": "Language support for CVN (C-style Visual Novel) script with syntax highlighting and autocompletion.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.107.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "cvn",
+    "visual novel",
+    "game development"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pinkqween/CVN.git"
+  },
+  "publisher": "pinkqween",
+  "activationEvents": [
+    "onLanguage:cvn"
+  ],
+  "main": "./out/src/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "cvn",
+        "aliases": [
+          "CVN",
+          "cvn"
+        ],
+        "extensions": [
+          ".cvn"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./images/cvn-icon.png",
+          "dark": "./images/cvn-icon.png"
+        }
+      },
+      {
+        "id": "effvn-c",
+        "aliases": [
+          "Efficient Interrupted VN C",
+          "effvn-c"
+        ],
+        "extensions": [
+          ".c"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./images/cvn-icon.png",
+          "dark": "./images/cvn-icon.png"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "cvn",
+        "scopeName": "source.cvn",
+        "path": "./syntax/cvn.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "cvn",
+        "path": "./snippets/cvn.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -b",
+    "watch": "tsc -b -w",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src server/src --ext ts",
+    "test": "vscode-test",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@types/vscode": "^1.107.0",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.12"
+  }
+}

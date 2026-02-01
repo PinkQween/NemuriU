@@ -44,6 +44,7 @@ target_link_libraries(NemuriU PRIVATE
     -lSDL2_ttf
     -lSDL2_image
     -lSDL2_mixer
+    -lmpg123
     -lharfbuzz
     -lfreetype
     -ljpeg

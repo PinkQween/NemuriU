@@ -1,8 +1,6 @@
 #include "nekopara_demo.h"
-#include "engine/renderer.h"
-#include "engine/resource.h"
-#include "engine/api.h"
-#include "engine/audio.h"
+#include "cvn_full.h"
+#include <SDL2/SDL.h>
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
@@ -449,10 +447,9 @@ int nekopara_demo_run(void) {
         cvn_renderer_draw(renderer);
         
         /* Custom overlay rendering */
-        SDL_Renderer *tv_renderer = cvn_window_get_renderer(
-            engine->window_manager, CVN_DISPLAY_PRIMARY);
-        SDL_Renderer *gamepad_renderer = cvn_window_get_renderer(
-            engine->window_manager, CVN_DISPLAY_SECONDARY);
+        CVNWindowManager *wm = cvn_get_window_manager(engine);
+        SDL_Renderer *tv_renderer = cvn_window_get_renderer(wm, CVN_DISPLAY_PRIMARY);
+        SDL_Renderer *gamepad_renderer = cvn_window_get_renderer(wm, CVN_DISPLAY_SECONDARY);
         
         /* Draw dialogue box on TV */
         if (tv_renderer) {
