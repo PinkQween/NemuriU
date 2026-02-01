@@ -45,7 +45,8 @@ if command -v wuhbtool >/dev/null; then
     wuhbtool "$BUILD_DIR/NemuriU.rpx" "$BUILD_DIR/NemuriU.wuhb" \
       --name="NemuriU" \
       --author="Hanna Skairipa" \
-      --icon="$ROOT_DIR/icon.png"
+      --icon="$ROOT_DIR/icon.png" \
+      --content="$ROOT_DIR/content"
 fi
 
 ok "Build Complete! Files are in $BUILD_DIR"

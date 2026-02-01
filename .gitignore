@@ -1,6 +1,19 @@
+# Ignore build directories and IDE/editor settings
 build/
 .env
 .DS_Store
 .vscode/
 .idea/
 *.swp
+
+# Build artifacts
+*.elf
+*.rpx
+*.wuhb
+*.o
+*.lst
+
+# Assets that may or may not be open source
+content/
+!content/font.ttf
+!content/logo.png

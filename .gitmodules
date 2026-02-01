@@ -1,0 +1,3 @@
+[submodule "cvn_engine"]
+	path = cvn
+	url = https://github.com/pinkqween/cvn.git
