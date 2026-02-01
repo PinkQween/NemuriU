@@ -17,4 +17,4 @@ build/
 content/
 !content/font.ttf
 !content/logo.png
-!content/*.cvn
+!*.cvn

@@ -28,10 +28,19 @@ set(CVN_SOURCES
     ${CVN_ENGINE_DIR}/src/engine/window.c
     ${CVN_ENGINE_DIR}/src/engine/renderer.c
     ${CVN_ENGINE_DIR}/src/engine/resource.c
-    ${CVN_ENGINE_DIR}/src/engine/audio.c
     ${CVN_ENGINE_DIR}/src/engine/api.c
     ${CVN_ENGINE_DIR}/src/script/cvn_parser.c
 )
+
+# Conditional audio - SDL_mixer has issues on Wii U
+if(WIIU)
+    message(STATUS "Wii U build: Using audio stub (SDL_mixer has dependency issues)")
+    list(APPEND CVN_SOURCES ${CVN_ENGINE_DIR}/src/engine/audio_stub.c)
+    add_compile_definitions(CVN_AUDIO_STUB)
+else()
+    message(STATUS "Desktop build: Using SDL_mixer")
+    list(APPEND CVN_SOURCES ${CVN_ENGINE_DIR}/src/engine/audio.c)
+endif()
 
 add_executable(NemuriU
     src/main.c
@@ -43,23 +52,20 @@ target_link_libraries(NemuriU PRIVATE
     SDL2::SDL2
     -lSDL2_ttf
     -lSDL2_image
-    -lSDL2_mixer
-    -lmodplug
-    -lmpg123
-    -lvorbisfile
-    -lvorbis
-    -logg
-    -lmad
     -lharfbuzz
     -lfreetype
     -ljpeg
     -lpng
     -lz
     -lbz2
-    -lstdc++
     -lwut
     -lm
 )
+
+# Only link SDL_mixer on desktop (has issues on Wii U)
+if(NOT WIIU)
+    target_link_libraries(NemuriU PRIVATE -lSDL2_mixer)
+endif()
 
 add_custom_command(TARGET NemuriU POST_BUILD
     COMMAND ${TOOLS_BIN}/elf2rpl $<TARGET_FILE:NemuriU> ${CMAKE_BINARY_DIR}/NemuriU.rpx
