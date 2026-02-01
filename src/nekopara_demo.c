@@ -1,6 +1,7 @@
 #include "nekopara_demo.h"
 #include "cvn_full.h"
 #include "engine/text.h"
+#include "engine/log.h"
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <math.h>
@@ -153,10 +154,10 @@ static void nekopara_init(NekoparaDemo *demo, CVNEngine *engine) {
     cvn_renderer_set_layer_display(renderer, "actors", CVN_DISPLAY_PRIMARY);
     cvn_renderer_set_layer_display(renderer, "overlay", CVN_DISPLAY_PRIMARY);
     
-    printf("\n=== Nekopara Demo Initialized ===\n");
-    printf("TV Display: Visual Novel scenes\n");
-    printf("Gamepad Display: UI and controls\n");
-    printf("==================================\n\n");
+    CVN_LOG("=== Nekopara Demo Initialized ===");
+    CVN_LOG("TV Display: Visual Novel scenes");
+    CVN_LOG("Gamepad Display: UI and controls");
+    CVN_LOG("==================================");
 }
 
 static void nekopara_load_line(NekoparaDemo *demo) {
@@ -207,7 +208,7 @@ static void nekopara_load_line(NekoparaDemo *demo) {
     demo->visible_chars = 0;
     demo->text_complete = false;
     
-    printf("[%s]: %s\n", line->speaker, line->text);
+    CVN_LOG("[%s]: %s", line->speaker, line->text);
 }
 
 static void nekopara_update(NekoparaDemo *demo, float delta_time) {
@@ -430,24 +431,25 @@ static void nekopara_render_ui(NekoparaDemo *demo, SDL_Renderer *renderer,
 }
 
 int nekopara_demo_run(void) {
-    printf("\n");
-    printf("╔════════════════════════════════════════════════╗\n");
-    printf("║     CVN Engine - Nekopara VN Demo (Wii U)     ║\n");
-    printf("╚════════════════════════════════════════════════╝\n");
-    printf("\n");
-    printf("Features Demonstrated:\n");
-    printf("  • Dual-screen rendering (TV + Gamepad)\n");
-    printf("  • Character sprites with expressions\n");
-    printf("  • Breathing animations\n");
-    printf("  • Typewriter dialogue effect\n");
-    printf("  • Background scenes\n");
-    printf("  • Native C sprite manipulation\n");
-    printf("  • Per-layer display routing\n");
-    printf("\n");
-    printf("Controls:\n");
-    printf("  SPACE/ENTER - Advance dialogue\n");
-    printf("  ESC - Exit demo\n");
-    printf("\n");
+    CVN_LOG_INIT();
+    
+    CVN_LOG("════════════════════════════════════════════════");
+    CVN_LOG("     CVN Engine - Nekopara VN Demo (Wii U)     ");
+    CVN_LOG("════════════════════════════════════════════════");
+    CVN_LOG("");
+    CVN_LOG("Features Demonstrated:");
+    CVN_LOG("  • Dual-screen rendering (TV + Gamepad)");
+    CVN_LOG("  • Character sprites with expressions");
+    CVN_LOG("  • Breathing animations");
+    CVN_LOG("  • Typewriter dialogue effect");
+    CVN_LOG("  • Background scenes");
+    CVN_LOG("  • Native C sprite manipulation");
+    CVN_LOG("  • Per-layer display routing");
+    CVN_LOG("");
+    CVN_LOG("Controls:");
+    CVN_LOG("  SPACE/ENTER/A - Advance dialogue");
+    CVN_LOG("  ESC/B - Exit demo");
+    CVN_LOG("");
     
     /* Configure CVN for Wii U dual-screen */
     CVNConfig config = {
@@ -529,9 +531,11 @@ int nekopara_demo_run(void) {
     
     cvn_shutdown(engine);
     
-    printf("\n");
-    printf("Demo completed!\n");
-    printf("Thank you for trying CVN Engine on Wii U!\n\n");
+    CVN_LOG("");
+    CVN_LOG("Demo completed!");
+    CVN_LOG("Thank you for trying CVN Engine on Wii U!");
+    
+    CVN_LOG_SHUTDOWN();
     
     return 0;
 }
