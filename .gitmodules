@@ -1,4 +1,3 @@
-[submodule "cvn_engine"]
-	path = cvn_engine
+[submodule "cvn"]
+	path = cvn
 	url = https://github.com/pinkqween/cvn.git
-    branch = main

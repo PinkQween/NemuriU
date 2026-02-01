@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(NemuriU C)
 
 # CVN Engine Integration
-set(CVN_ENGINE_DIR "${CMAKE_SOURCE_DIR}/cvn_engine")
+set(CVN_ENGINE_DIR "${CMAKE_SOURCE_DIR}/cvn")
 
 # 1. Define all possible lib paths
 set(WUT_ROOT "/opt/devkitpro/wut")
