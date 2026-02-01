@@ -44,12 +44,19 @@ target_link_libraries(NemuriU PRIVATE
     -lSDL2_ttf
     -lSDL2_image
     -lSDL2_mixer
+    -lmodplug
     -lmpg123
+    -lvorbisfile
+    -lvorbis
+    -logg
+    -lmad
     -lharfbuzz
     -lfreetype
     -ljpeg
     -lpng
     -lz
+    -lbz2
+    -lstdc++
     -lwut
     -lm
 )
