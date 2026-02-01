@@ -1,9 +1,0 @@
-node_modules
-out
-*.vsix
-.vscode-test
-*.log
-.DS_Store
-bun.lock
-package-lock.json
-*.vsix
