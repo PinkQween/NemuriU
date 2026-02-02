@@ -12,10 +12,3 @@ build/
 *.wuhb
 *.o
 *.lst
-
-# Assets that may or may not be open source
-content/
-!content/font.ttf
-!content/logo.png
-!*.cvn
-!content/ddlc_community_assets/**/*

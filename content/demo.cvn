@@ -1,0 +1,572 @@
+/* =========================================================
+   Nekopara CVN Demo Script - Full Feature Showcase
+   ========================================================= */
+
+/* Character Definitions */
+character Chocola {
+    display_name: "Chocola";
+    name_color: 0xff69b4;  /* Hot pink */
+    voice_tag: "chocola";
+}
+
+character Vanilla {
+    display_name: "Vanilla";
+    name_color: 0x87cefa;  /* Light sky blue */
+    voice_tag: "vanilla";
+}
+
+character Kashou {
+    display_name: "Kashou";
+    name_color: 0xffd700;  /* Gold */
+    voice_tag: "kashou";
+}
+
+character Narrator {
+    display_name: "";
+    name_color: 0xffffff;
+}
+
+/* Asset Definitions */
+
+/* Backgrounds */
+asset bg cafe_exterior = "cafe_exterior.jpg";
+asset bg cafe_interior = "cafe_interior.jpg";
+asset bg kitchen       = "bg_school.jpg";
+asset bg bedroom       = "bg_school.jpg";
+asset bg park          = "bg_school.jpg";
+
+/* Chocola Expressions */
+asset sprite chocola_neutral  = "ch/chocola_neutral.png";
+asset sprite chocola_happy    = "ch/chocola_happy.png";
+asset sprite chocola_excited  = "ch/chocola_excited.png";
+asset sprite chocola_pout     = "ch/chocola_pout.png";
+asset sprite chocola_blush    = "ch/chocola_blush.png";
+asset sprite chocola_sad      = "ch/chocola_sad.png";
+asset sprite chocola_surprise = "ch/chocola_surprise.png";
+
+/* Vanilla Expressions */
+asset sprite vanilla_neutral  = "ch/vanilla_neutral.png";
+asset sprite vanilla_smile    = "ch/vanilla_smile.png";
+asset sprite vanilla_happy    = "ch/vanilla_happy.png";
+asset sprite vanilla_pout     = "ch/vanilla_pout.png";
+asset sprite vanilla_blush    = "ch/vanilla_blush.png";
+asset sprite vanilla_tired    = "ch/vanilla_tired.png";
+
+/* Kashou Sprites */
+asset sprite kashou_neutral   = "ch/kashou_neutral.png";
+asset sprite kashou_smile     = "ch/kashou_smile.png";
+
+/* Audio */
+asset music cafe_theme        = "audio/bgm/cafe_theme.ogg";
+asset music emotional_theme   = "audio/bgm/emotional.ogg";
+asset music happy_theme       = "audio/bgm/happy.ogg";
+asset music night_theme       = "audio/bgm/night.ogg";
+
+asset sfx bell                = "audio/sfx/bell.wav";
+asset sfx meow                = "audio/sfx/meow.wav";
+asset sfx purr                = "audio/sfx/purr.wav";
+asset sfx door                = "audio/sfx/door.wav";
+asset sfx impact              = "audio/sfx/impact.wav";
+
+/* UI Elements */
+asset ui choice_box           = "ui/choice_box.png";
+asset ui dialogue_box         = "ui/dialogue_box.png";
+asset ui name_box             = "ui/name_box.png";
+
+/* Reusable Character Position Styles */
+
+style char_left {
+    layer: "actors";
+    x: 0.20; y: 0.80;
+    anchor_x: 0.5; anchor_y: 1.0;
+    scale: 0.85;
+    alpha: 1.0;
+    rotation: 0.0;
+    tint: 0xffffff;
+    z: 100;
+}
+
+style char_center {
+    layer: "actors";
+    x: 0.50; y: 0.80;
+    anchor_x: 0.5; anchor_y: 1.0;
+    scale: 0.90;
+    alpha: 1.0;
+    rotation: 0.0;
+    tint: 0xffffff;
+    z: 110;
+}
+
+style char_right {
+    layer: "actors";
+    x: 0.80; y: 0.80;
+    anchor_x: 0.5; anchor_y: 1.0;
+    scale: 0.85;
+    alpha: 1.0;
+    rotation: 0.0;
+    tint: 0xffffff;
+    z: 100;
+}
+
+style char_far_left {
+    layer: "actors";
+    x: 0.10; y: 0.82;
+    anchor_x: 0.5; anchor_y: 1.0;
+    scale: 0.75;
+    alpha: 0.9;
+    z: 90;
+}
+
+style char_far_right {
+    layer: "actors";
+    x: 0.90; y: 0.82;
+    anchor_x: 0.5; anchor_y: 1.0;
+    scale: 0.75;
+    alpha: 0.9;
+    z: 90;
+}
+
+/* Speaking character emphasis */
+style speaking {
+    alpha: 1.0;
+    tint: 0xffffffff;
+    z: 120;
+}
+
+style not_speaking {
+    alpha: 0.7;
+    tint: 0xccccccff;
+    z: 100;
+}
+
+/* UI Styles */
+style ui_top_center {
+    layer: "overlay";
+    x: 0.50; y: 0.10;
+    anchor_x: 0.5; anchor_y: 0.5;
+    scale: 1.0;
+    alpha: 1.0;
+    z: 1000;
+}
+
+style ui_bottom_center {
+    layer: "overlay";
+    x: 0.50; y: 0.90;
+    anchor_x: 0.5; anchor_y: 0.5;
+    scale: 1.0;
+    alpha: 1.0;
+    z: 1000;
+}
+
+/* GamePad UI - routed to secondary display */
+style gamepad_ui {
+    layer: "ui";  /* This layer goes to GamePad */
+    x: 0.50; y: 0.50;
+    anchor_x: 0.5; anchor_y: 0.5;
+    scale: 1.0;
+    alpha: 1.0;
+    z: 2000;
+}
+
+/* =========================================================
+   NEKOPARA STORY - Chapter 1: Morning at La Soleil
+   ========================================================= */
+
+start {
+    /* Opening scene - cafe exterior */
+    scene bg cafe_exterior;
+    with fade(1.0);
+    
+    music play cafe_theme loop fade_in 2.0;
+    
+    /* Title card on GamePad */
+    show ui text "Chapter 1: Morning at La Soleil" as "title"
+        use gamepad_ui;
+    
+    pause 2.0;
+    hide "title" with fade(0.5);
+    
+    /* Narrator introduction */
+    say(Narrator, "Welcome to La Soleil, a small patisserie in the heart of the city.");
+    say(Narrator, "Run by the young patissier Kashou Minaduki and his two catgirl assistants...");
+    
+    /* Transition to interior */
+    scene bg cafe_interior;
+    with fade(0.8);
+    
+    sfx play bell;
+    
+    /* Chocola enters energetically */
+    show Chocola sprite chocola_excited as "chocola"
+        use char_left
+    {
+        z: 120;
+        tint: 0xffe6f2ff;  /* Warm pink tint */
+    };
+    with move(0.3);
+    
+    say(Chocola, "Nyaa~! Good morning everyone! ♪");
+    say(Chocola, "It's such a beautiful day! Perfect for making delicious cakes!");
+    
+    /* Vanilla enters calmly */
+    show Vanilla sprite vanilla_neutral as "vanilla"
+        use char_right
+    {
+        z: 120;
+        tint: 0xfff0f8ff;  /* Cool blue tint */
+    };
+    with move(0.3);
+    
+    say(Vanilla, "Good morning... Chocola is being energetic as usual...");
+    say(Chocola, "Vanilla! We should start preparing for today's customers!");
+    say(Vanilla, "...Chocola, you forgot to tie your apron again.");
+    
+    show Chocola sprite chocola_blush;
+    say(Chocola, "Nyaaa! I-I'll fix it right away!");
+    
+    show Vanilla sprite vanilla_smile;
+    say(Vanilla, "Fufu... some things never change.");
+    
+    /* Kashou enters */
+    scene bg cafe_interior;
+    say(Kashou, "Good morning, you two. Ready for another busy day?");
+    say(Chocola, "Yes, Master! We're always ready!");
+    say(Vanilla, "...Master looks tired. Did you stay up late experimenting with recipes again?");
+    say(Kashou, "Haha, you know me too well, Vanilla.");
+    
+    say(Narrator, "The morning sunlight streams through the café windows...");
+    say(Narrator, "As the smell of fresh pastries fills the air.");
+    say(Narrator, "Another peaceful day at La Soleil begins.");
+    
+    /* Customer interactions */
+    say(Chocola, "Ah! Our first customer is here! Welcome to La Soleil!");
+    say(Vanilla, "...What would you like to order?");
+    say(Narrator, "A regular customer enters, greeted by the warm smiles of the catgirls.");
+    
+    say(Kashou, "I'll prepare the Mont Blanc cake. Chocola, can you help with the whipped cream?");
+    say(Chocola, "Yes! Leave it to me! ♪");
+    say(Vanilla, "...I'll handle the drinks.");
+    
+    /* Afternoon scene */
+    say(Narrator, "As the afternoon arrives, the café becomes busier...");
+    say(Chocola, "Thank you for coming! Please visit again!");
+    say(Vanilla, "...The macarons are selling well today.");
+    say(Kashou, "Great work, everyone. Let's keep this energy going!");
+    
+    say(Chocola, "Master, can we try making a new dessert tomorrow?");
+    say(Kashou, "What did you have in mind?");
+    say(Chocola, "How about a strawberry shortcake with extra cream and a chocolate drizzle?");
+    say(Vanilla, "...That sounds very Chocola-like. Too sweet.");
+    say(Chocola, "Eh?! Vanilla, you're so mean!");
+    say(Vanilla, "Fufu... but it does sound delicious.");
+    
+    /* Evening closing */
+    say(Narrator, "As the sun begins to set, the café prepares to close for the day.");
+    say(Kashou, "Alright, let's clean up and call it a day.");
+    say(Chocola, "Today was so much fun!");
+    say(Vanilla, "...Tomorrow will be another busy day.");
+    say(Narrator, "The warm glow of the setting sun fills the café...");
+    say(Narrator, "As another wonderful day at La Soleil comes to an end.");
+    
+    say(Chocola, "Good night, everyone! Sweet dreams! ♥");
+    say(Vanilla, "...Good night.");
+    say(Kashou, "Rest well. Tomorrow's a new day.");
+    
+    say(Narrator, "And so, the story of La Soleil continues...");
+    say(Narrator, "With love, laughter, and the sweetest treats in town.");
+    say(Narrator, "Thank you for visiting La Soleil!");
+    
+    /* THE END */
+    scene bg cafe_exterior;
+    pause 2.0;
+    
+    /* Vanilla enters calmly */
+    show Vanilla sprite vanilla_neutral as "vanilla"
+        use char_right
+    {
+        z: 115;
+        tint: 0xe6f0ffff;  /* Cool blue tint */
+    };
+    with dissolve(0.4);
+    
+    say(Vanilla, "...Good morning. Chocola's been hyper since 5 AM.");
+    
+    /* Update expressions */
+    show "chocola" sprite chocola_happy with dissolve(0.2);
+    
+    say(Chocola, "That's because I'm excited! Today we're trying Master's new recipe!");
+    
+    /* Kashou enters center */
+    show Kashou sprite kashou_neutral as "kashou"
+        use char_center
+    {
+        z: 125;
+    };
+    with move(0.3);
+    
+    say(Kashou, "Easy there, Chocola. We need to prepare everything first.");
+    
+    /* Demonstrate multi-character positioning */
+    show "chocola" {
+        x: 0.15;
+        z: 110;
+        alpha: 0.8;  /* Not speaking */
+    };
+    with move(0.25);
+    
+    show "vanilla" {
+        x: 0.85;
+        z: 110;
+        alpha: 0.8;
+    };
+    with move(0.25);
+    
+    say(Kashou, "Today's special is going to be a strawberry mont blanc.");
+    say(Kashou, "I need you both to help with the prep work.");
+    
+    /* Chocola gets excited */
+    show "chocola" sprite chocola_excited {
+        alpha: 1.0;
+        z: 120;
+        scale: 0.90;
+    };
+    with quick;
+    
+    sfx play meow;
+    
+    say(Chocola, "Yes, Master! Chocola will do her best! ✧");
+    
+    /* Native C block demonstration - advanced manipulation */
+    native "c" {
+        /* Make Chocola bounce with excitement */
+        CVNInstance* chocola = VN_FindInstance("chocola");
+        if (chocola) {
+            /* Add a slight tilt and scale boost */
+            chocola->rotation = 3.0f;
+            chocola->scale = 0.92f;
+            chocola->tint = 0xFFD0E8FF;  /* Extra pink when excited */
+        }
+    }
+    
+    say(Vanilla, "...I'll help too. Though Chocola will probably eat half the strawberries.");
+    
+    show "chocola" sprite chocola_pout {
+        rotation: 0.0;
+        scale: 0.85;
+    };
+    with dissolve(0.2);
+    
+    say(Chocola, "I-I won't! ...Maybe just one or two for taste testing...");
+    
+    /* Kashou smiles */
+    show "kashou" sprite kashou_smile with dissolve(0.2);
+    
+    say(Kashou, "Alright you two, let's get to work.");
+    
+    /* Transition to kitchen */
+    hide "kashou" with fade(0.3);
+    
+    scene bg kitchen;
+    with fade(0.5);
+    
+    /* Reposition characters for kitchen scene */
+    show "chocola" sprite chocola_happy {
+        x: 0.30;
+        y: 0.80;
+        z: 120;
+        tint: 0xffe6f2ff;
+    };
+    with dissolve(0.3);
+    
+    show "vanilla" sprite vanilla_smile {
+        x: 0.70;
+        y: 0.80;
+        z: 115;
+        tint: 0xe6f0ffff;
+    };
+    with dissolve(0.3);
+    
+    /* Working montage */
+    say(Narrator, "The morning passes peacefully as the three work together...");
+    
+    music play happy_theme loop fade_in 1.5;
+    
+    say(Chocola, "Vanilla, vanilla! Look how fluffy the cream is getting!");
+    
+    show "vanilla" sprite vanilla_happy with dissolve(0.2);
+    
+    say(Vanilla, "...It is quite fluffy. Good work, Chocola.");
+    
+    sfx play purr;
+    
+    /* Show progress UI on GamePad */
+    show ui text "Baking Progress: 50%" as "progress"
+        use gamepad_ui
+    {
+        y: 0.30;
+    };
+    
+    pause 1.0;
+    
+    show "progress" text "Baking Progress: 75%";
+    with dissolve(0.3);
+    
+    pause 1.0;
+    
+    show "progress" text "Baking Progress: 100% ✓";
+    with dissolve(0.3);
+    
+    pause 0.5;
+    hide "progress" with fade(0.3);
+    
+    /* Success! */
+    show "chocola" sprite chocola_excited {
+        z: 125;
+        scale: 0.90;
+    };
+    with quick;
+    
+    say(Chocola, "We did it! It looks amazing!");
+    
+    /* Advanced animation - celebration */
+    native "c" {
+        CVNInstance* chocola = VN_FindInstance("chocola");
+        CVNInstance* vanilla = VN_FindInstance("vanilla");
+        
+        if (chocola) {
+            /* Chocola jumps for joy */
+            chocola->y = 0.75f;  /* Slightly higher */
+            chocola->rotation = -5.0f;
+        }
+        
+        if (vanilla) {
+            /* Vanilla subtle smile */
+            vanilla->tint = 0xFFE0F0FF;  /* Slightly brighter */
+        }
+    }
+    
+    pause 0.3;
+    
+    native "c" {
+        CVNInstance* chocola = VN_FindInstance("chocola");
+        if (chocola) {
+            chocola->y = 0.80f;  /* Back down */
+            chocola->rotation = 0.0f;
+        }
+    }
+    
+    say(Vanilla, "...Yes. Master will be pleased.");
+    
+    /* CHOICE DEMONSTRATION */
+    show ui text "What should we do?" as "choice_prompt"
+        use gamepad_ui
+    {
+        y: 0.20;
+    };
+    
+    choice {
+        "Taste test a slice" -> taste_test;
+        "Show Master right away" -> show_master;
+        "Take a picture first" -> take_picture;
+    }
+}
+
+label taste_test {
+    hide "choice_prompt" with fade(0.2);
+    
+    show "chocola" sprite chocola_blush with dissolve(0.2);
+    
+    say(Chocola, "M-maybe just a tiny taste? To make sure it's perfect!");
+    
+    say(Vanilla, "...I suppose quality control is important.");
+    
+    sfx play impact;
+    
+    show ui text "Delicious! ★★★★★" as "rating"
+        use ui_top_center;
+    
+    pause 1.5;
+    hide "rating" with fade(0.3);
+    
+    jump ending;
+}
+
+label show_master {
+    hide "choice_prompt" with fade(0.2);
+    
+    say(Chocola, "Let's show Master right away! He'll be so proud!");
+    
+    scene bg cafe_interior;
+    with fade(0.5);
+    
+    show Kashou sprite kashou_smile as "kashou"
+        use char_center;
+    
+    say(Kashou, "Excellent work, you two! This looks perfect.");
+    
+    sfx play bell;
+    
+    say(Kashou, "Just in time for our first customers!");
+    
+    jump ending;
+}
+
+label take_picture {
+    hide "choice_prompt" with fade(0.2);
+    
+    say(Vanilla, "...For social media. Good thinking.");
+    
+    sfx play impact;
+    
+    show ui text "📸 *SNAP*" as "camera"
+        use ui_top_center;
+    
+    pause 0.8;
+    hide "camera" with fade(0.2);
+    
+    show "chocola" sprite chocola_happy with dissolve(0.2);
+    
+    say(Chocola, "Perfect! Our fans will love this!");
+    
+    jump ending;
+}
+
+label ending {
+    /* Final scene */
+    music play cafe_theme loop fade_in 2.0;
+    
+    scene bg cafe_exterior;
+    with fade(1.0);
+    
+    say(Narrator, "And so, another peaceful day begins at La Soleil...");
+    say(Narrator, "This demo showcased CVN engine's dual-screen, multi-character, and advanced scripting features!");
+    
+    show ui text "Thank you for playing!" as "thanks"
+        use ui_top_center;
+    
+    show ui text "CVN Engine - Powered by Native C" as "powered"
+        use gamepad_ui;
+    
+    pause 3.0;
+    
+    /* End */
+    fade_to_black 2.0;
+}
+
+/* =========================================================
+   End of Nekopara Demo Script
+   Features demonstrated:
+   - Character definitions with colors and voice tags
+   - Asset management (backgrounds, sprites, audio)
+   - Reusable position styles
+   - Scene transitions (fade, dissolve, move, quick)
+   - Background music with fade in/out
+   - Sound effects
+   - Multi-character positioning and depth
+   - Expression changes
+   - Native C blocks for advanced manipulation
+   - Dual-screen UI (GamePad)
+   - Choice system with branches
+   - Labels and jumps
+   - Dynamic text on UI layer
+   ========================================================= */

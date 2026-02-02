@@ -78,7 +78,7 @@ endif()
 
 
 add_executable(NemuriU
-    src/nekopara_demo.c
+    src/main.c
     ${CVN_SOURCES}
 )
 
@@ -111,6 +111,9 @@ else()
         bz2
         m
     )
+    if(APPLE)
+        target_link_libraries(NemuriU PRIVATE "-framework Cocoa")
+    endif()
 endif()
 
 
