@@ -18,3 +18,4 @@ content/
 !content/font.ttf
 !content/logo.png
 !*.cvn
+!content/ddlc_community_assets/**/*
