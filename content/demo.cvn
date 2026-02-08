@@ -1,24 +1,36 @@
 /* =========================================================
-   Nekopara CVN Demo Script - Full Feature Showcase
+   Literature Club Dating Sim - A New Beginning
    ========================================================= */
 
 /* Character Definitions */
-character Chocola {
-    display_name: "Chocola";
-    name_color: 0xff69b4;  /* Hot pink */
-    voice_tag: "chocola";
+character Sayori {
+    display_name: "Sayori";
+    name_color: 0xff9ed9;  /* Pink */
+    voice_tag: "sayori";
 }
 
-character Vanilla {
-    display_name: "Vanilla";
-    name_color: 0x87cefa;  /* Light sky blue */
-    voice_tag: "vanilla";
+character Monika {
+    display_name: "Monika";
+    name_color: 0x5ac84d;  /* Green */
+    voice_tag: "monika";
 }
 
-character Kashou {
-    display_name: "Kashou";
+character Yuri {
+    display_name: "Yuri";
+    name_color: 0xa55bca;  /* Purple */
+    voice_tag: "yuri";
+}
+
+character Natsuki {
+    display_name: "Natsuki";
+    name_color: 0xf388c8;  /* Pink */
+    voice_tag: "natsuki";
+}
+
+character MC {
+    display_name: "Me";
     name_color: 0xffd700;  /* Gold */
-    voice_tag: "kashou";
+    voice_tag: "mc";
 }
 
 character Narrator {
@@ -29,49 +41,45 @@ character Narrator {
 /* Asset Definitions */
 
 /* Backgrounds */
-asset bg cafe_exterior = "cafe_exterior.jpg";
-asset bg cafe_interior = "cafe_interior.jpg";
-asset bg kitchen       = "bg_school.jpg";
-asset bg bedroom       = "bg_school.jpg";
-asset bg park          = "bg_school.jpg";
+asset bg club_room     = "ddlc_assets/images/bg/club.png";
+asset bg classroom     = "ddlc_assets/images/bg/class.png";
+asset bg corridor      = "ddlc_assets/images/bg/corridor.png";
+asset bg residential   = "ddlc_assets/images/bg/residential.png";
+asset bg sayori_room   = "ddlc_assets/images/bg/sayori_bedroom.png";
 
-/* Chocola Expressions */
-asset sprite chocola_neutral  = "ch/chocola_neutral.png";
-asset sprite chocola_happy    = "ch/chocola_happy.png";
-asset sprite chocola_excited  = "ch/chocola_excited.png";
-asset sprite chocola_pout     = "ch/chocola_pout.png";
-asset sprite chocola_blush    = "ch/chocola_blush.png";
-asset sprite chocola_sad      = "ch/chocola_sad.png";
-asset sprite chocola_surprise = "ch/chocola_surprise.png";
+/* Sayori Expressions - using single letter codes */
+asset sprite sayori_neutral  = "ddlc_assets/images/sayori/1l.png";
+asset sprite sayori_happy    = "ddlc_assets/images/sayori/d.png";
+asset sprite sayori_smile    = "ddlc_assets/images/sayori/a.png";
+asset sprite sayori_sad      = "ddlc_assets/images/sayori/g.png";
+asset sprite sayori_crying   = "ddlc_assets/images/sayori/h.png";
 
-/* Vanilla Expressions */
-asset sprite vanilla_neutral  = "ch/vanilla_neutral.png";
-asset sprite vanilla_smile    = "ch/vanilla_smile.png";
-asset sprite vanilla_happy    = "ch/vanilla_happy.png";
-asset sprite vanilla_pout     = "ch/vanilla_pout.png";
-asset sprite vanilla_blush    = "ch/vanilla_blush.png";
-asset sprite vanilla_tired    = "ch/vanilla_tired.png";
+/* Monika Expressions - using single letter codes */
+asset sprite monika_neutral  = "ddlc_assets/images/monika/1l.png";
+asset sprite monika_smile    = "ddlc_assets/images/monika/a.png";
+asset sprite monika_happy    = "ddlc_assets/images/monika/d.png";
+asset sprite monika_pout     = "ddlc_assets/images/monika/p.png";
 
-/* Kashou Sprites */
-asset sprite kashou_neutral   = "ch/kashou_neutral.png";
-asset sprite kashou_smile     = "ch/kashou_smile.png";
+/* Yuri Expressions - using single letter codes */
+asset sprite yuri_neutral    = "ddlc_assets/images/yuri/1l.png";
+asset sprite yuri_smile      = "ddlc_assets/images/yuri/a.png";
+asset sprite yuri_happy      = "ddlc_assets/images/yuri/d.png";
+asset sprite yuri_shy        = "ddlc_assets/images/yuri/f.png";
+
+/* Natsuki Expressions - using single letter codes */
+asset sprite natsuki_neutral = "ddlc_assets/images/natsuki/1l.png";
+asset sprite natsuki_smile   = "ddlc_assets/images/natsuki/a.png";
+asset sprite natsuki_happy   = "ddlc_assets/images/natsuki/d.png";
+asset sprite natsuki_pout    = "ddlc_assets/images/natsuki/f.png";
 
 /* Audio */
-asset music cafe_theme        = "audio/bgm/cafe_theme.ogg";
-asset music emotional_theme   = "audio/bgm/emotional.ogg";
-asset music happy_theme       = "audio/bgm/happy.ogg";
-asset music night_theme       = "audio/bgm/night.ogg";
-
-asset sfx bell                = "audio/sfx/bell.wav";
-asset sfx meow                = "audio/sfx/meow.wav";
-asset sfx purr                = "audio/sfx/purr.wav";
-asset sfx door                = "audio/sfx/door.wav";
-asset sfx impact              = "audio/sfx/impact.wav";
+asset music club_theme       = "ddlc_community_assets/Original Music and FX/bgm/1.ogg";
+asset music sayori_theme     = "ddlc_community_assets/Original Music and FX/bgm/5_sayori.ogg";
+asset music monika_theme     = "ddlc_community_assets/Original Music and FX/bgm/5_monika.ogg";
 
 /* UI Elements */
-asset ui choice_box           = "ui/choice_box.png";
-asset ui dialogue_box         = "ui/dialogue_box.png";
-asset ui name_box             = "ui/name_box.png";
+asset ui choice_box          = "ddlc_assets/gui/frame.png";
+asset ui dialogue_box        = "ddlc_assets/gui/textbox.png";
 
 /* Reusable Character Position Styles */
 
@@ -169,404 +177,289 @@ style gamepad_ui {
 }
 
 /* =========================================================
-   NEKOPARA STORY - Chapter 1: Morning at La Soleil
+   Literature Club Dating Sim - Chapter 1: First Day
    ========================================================= */
 
 start {
-    /* Opening scene - cafe exterior */
-    scene bg cafe_exterior;
+    /* Opening scene - walking to school */
+    scene bg residential;
     with fade(1.0);
     
-    music play cafe_theme loop fade_in 2.0;
-    
-    /* Title card on GamePad */
-    show ui text "Chapter 1: Morning at La Soleil" as "title"
-        use gamepad_ui;
-    
-    pause 2.0;
-    hide "title" with fade(0.5);
+    /* music play sayori_theme loop fade_in 2.0; */ /* Not yet supported by parser */
     
     /* Narrator introduction */
-    say(Narrator, "Welcome to La Soleil, a small patisserie in the heart of the city.");
-    say(Narrator, "Run by the young patissier Kashou Minaduki and his two catgirl assistants...");
+    say(Narrator, "It's my first day at a new school...");
+    say(Narrator, "I've been feeling a bit anxious, but I need to make friends and try new things.");
     
-    /* Transition to interior */
-    scene bg cafe_interior;
+    say(MC, "I should probably join a club. That's what everyone keeps telling me.");
+    say(MC, "But which one? Sports? Gaming? Art?");
+    
+    /* Sayori appears */
+    show Sayori sprite sayori_happy as "sayori"
+    
+    say(Sayori, "Hey! There you are! I've been looking for you!");
+    say(Sayori, "Have you decided which club to join yet?");
+    
+    say(MC, "Oh, hey Sayori. Not yet... I'm still thinking about it.");
+    
+    show "sayori" sprite sayori_smile
+    say(Sayori, "Well, you know... my club is always looking for new members!");
+    say(Sayori, "We do all sorts of fun activities! You should come check it out!");
+    
+    say(MC, "What kind of club is it?");
+    
+    show "sayori" sprite sayori_happy
+    say(Sayori, "The Literature Club! We read, write poems, share our thoughts...");
+    say(Sayori, "And we have cupcakes! Natsuki makes the best cupcakes!");
+    
+    say(MC, "Literature club, huh? I didn't know you were into literature.");
+    
+    show Sayori sprite sayori_smile
+    say(Sayori, "Well... maybe not as much as the others, but it's really fun!");
+    say(Sayori, "Plus, the club members are really nice! You'd fit right in!");
+    
+    say(MC, "I'll think about it...");
+    
+    show Sayori sprite sayori_neutral
+    say(Sayori, "No thinking! Just come with me after school today! Please?");
+    say(Sayori, "It'll be fun, I promise! And if you don't like it, you don't have to join!");
+    
+    /* Transition to school corridor */
+    scene bg corridor;
     with fade(0.8);
     
-    sfx play bell;
+    say(Narrator, "After school, Sayori dragged me to the Literature Club...");
+    say(Narrator, "I had no idea what to expect...");
     
-    /* Chocola enters energetically */
-    show Chocola sprite chocola_excited as "chocola"
-        use char_left
-    {
-        z: 120;
-        tint: 0xffe6f2ff;  /* Warm pink tint */
-    };
-    with move(0.3);
+    hide "sayori" with fade(0.3)
     
-    say(Chocola, "Nyaa~! Good morning everyone! ♪");
-    say(Chocola, "It's such a beautiful day! Perfect for making delicious cakes!");
+    /* Transition to club room */
+    scene bg club_room;
+    with fade(0.8);
     
-    /* Vanilla enters calmly */
-    show Vanilla sprite vanilla_neutral as "vanilla"
-        use char_right
-    {
-        z: 120;
-        tint: 0xfff0f8ff;  /* Cool blue tint */
-    };
-    with move(0.3);
+    /* music play club_theme loop fade_in 1.5; */ /* Not yet supported by parser */
     
-    say(Vanilla, "Good morning... Chocola is being energetic as usual...");
-    say(Chocola, "Vanilla! We should start preparing for today's customers!");
-    say(Vanilla, "...Chocola, you forgot to tie your apron again.");
+    say(Narrator, "The club room was cozy, with desks arranged in a circle and bookshelves lining the walls.");
     
-    show Chocola sprite chocola_blush;
-    say(Chocola, "Nyaaa! I-I'll fix it right away!");
+    /* Monika enters */
+    show Monika sprite monika_smile as "monika"
     
-    show Vanilla sprite vanilla_smile;
-    say(Vanilla, "Fufu... some things never change.");
+    say(Monika, "Oh! Welcome! You must be the new member Sayori told us about!");
+    say(Monika, "I'm Monika, the club president. It's so nice to meet you!");
     
-    /* Kashou enters */
-    scene bg cafe_interior;
-    say(Kashou, "Good morning, you two. Ready for another busy day?");
-    say(Chocola, "Yes, Master! We're always ready!");
-    say(Vanilla, "...Master looks tired. Did you stay up late experimenting with recipes again?");
-    say(Kashou, "Haha, you know me too well, Vanilla.");
+    say(MC, "Nice to meet you too. I'm just here to check things out...");
     
-    say(Narrator, "The morning sunlight streams through the café windows...");
-    say(Narrator, "As the smell of fresh pastries fills the air.");
-    say(Narrator, "Another peaceful day at La Soleil begins.");
+    show Monika sprite monika_happy
+    say(Monika, "That's perfectly fine! No pressure at all!");
+    say(Monika, "Why don't I introduce you to the other members?");
     
-    /* Customer interactions */
-    say(Chocola, "Ah! Our first customer is here! Welcome to La Soleil!");
-    say(Vanilla, "...What would you like to order?");
-    say(Narrator, "A regular customer enters, greeted by the warm smiles of the catgirls.");
+    /* Yuri enters from the side */
     
-    say(Kashou, "I'll prepare the Mont Blanc cake. Chocola, can you help with the whipped cream?");
-    say(Chocola, "Yes! Leave it to me! ♪");
-    say(Vanilla, "...I'll handle the drinks.");
+    show Yuri sprite yuri_neutral as "yuri"
     
-    /* Afternoon scene */
-    say(Narrator, "As the afternoon arrives, the café becomes busier...");
-    say(Chocola, "Thank you for coming! Please visit again!");
-    say(Vanilla, "...The macarons are selling well today.");
-    say(Kashou, "Great work, everyone. Let's keep this energy going!");
+    say(Monika, "This is Yuri. She's our resident bookworm!");
     
-    say(Chocola, "Master, can we try making a new dessert tomorrow?");
-    say(Kashou, "What did you have in mind?");
-    say(Chocola, "How about a strawberry shortcake with extra cream and a chocolate drizzle?");
-    say(Vanilla, "...That sounds very Chocola-like. Too sweet.");
-    say(Chocola, "Eh?! Vanilla, you're so mean!");
-    say(Vanilla, "Fufu... but it does sound delicious.");
+    show Yuri sprite yuri_shy
+    say(Yuri, "O-oh, hello... It's nice to meet you...");
+    say(Yuri, "I hope you'll consider joining us... We could always use fresh perspectives.");
     
-    /* Evening closing */
-    say(Narrator, "As the sun begins to set, the café prepares to close for the day.");
-    say(Kashou, "Alright, let's clean up and call it a day.");
-    say(Chocola, "Today was so much fun!");
-    say(Vanilla, "...Tomorrow will be another busy day.");
-    say(Narrator, "The warm glow of the setting sun fills the café...");
-    say(Narrator, "As another wonderful day at La Soleil comes to an end.");
+    say(MC, "Thanks. What kind of books do you like?");
     
-    say(Chocola, "Good night, everyone! Sweet dreams! ♥");
-    say(Vanilla, "...Good night.");
-    say(Kashou, "Rest well. Tomorrow's a new day.");
+    show Yuri sprite yuri_smile
+    say(Yuri, "Oh, I enjoy many genres... Mystery, fantasy, psychological thrillers...");
+    say(Yuri, "There's something magical about getting lost in a good story.");
     
-    say(Narrator, "And so, the story of La Soleil continues...");
-    say(Narrator, "With love, laughter, and the sweetest treats in town.");
-    say(Narrator, "Thank you for visiting La Soleil!");
+    /* Natsuki enters */
+    show Natsuki sprite natsuki_neutral as "natsuki"
     
-    /* THE END */
-    scene bg cafe_exterior;
-    pause 2.0;
     
-    /* Vanilla enters calmly */
-    show Vanilla sprite vanilla_neutral as "vanilla"
-        use char_right
-    {
-        z: 115;
-        tint: 0xe6f0ffff;  /* Cool blue tint */
-    };
-    with dissolve(0.4);
     
-    say(Vanilla, "...Good morning. Chocola's been hyper since 5 AM.");
+    say(Natsuki, "Hey! Are you the new person?");
+    say(Natsuki, "I'm Natsuki. Don't expect me to go easy on you just because you're new!");
     
-    /* Update expressions */
-    show "chocola" sprite chocola_happy with dissolve(0.2);
+    say(MC, "I... wasn't expecting that?");
     
-    say(Chocola, "That's because I'm excited! Today we're trying Master's new recipe!");
+    show Natsuki sprite natsuki_pout
+    say(Natsuki, "Good! As long as we understand each other!");
     
-    /* Kashou enters center */
-    show Kashou sprite kashou_neutral as "kashou"
-        use char_center
-    {
-        z: 125;
-    };
-    with move(0.3);
+    show Monika sprite monika_smile
+    say(Monika, "Don't mind Natsuki, she's actually really sweet once you get to know her!");
     
-    say(Kashou, "Easy there, Chocola. We need to prepare everything first.");
+    show Natsuki sprite natsuki_pout
+    say(Natsuki, "I-I'm not sweet! I'm tough!");
     
-    /* Demonstrate multi-character positioning */
-    show "chocola" {
-        x: 0.15;
-        z: 110;
-        alpha: 0.8;  /* Not speaking */
-    };
-    with move(0.25);
+    /* Sayori rejoins */
+    show Sayori sprite sayori_happy as "sayori2"
     
-    show "vanilla" {
-        x: 0.85;
-        z: 110;
-        alpha: 0.8;
-    };
-    with move(0.25);
+    say(Sayori, "See? I told you they're all really nice!");
+    say(Sayori, "So, what do you think? Want to join?");
     
-    say(Kashou, "Today's special is going to be a strawberry mont blanc.");
-    say(Kashou, "I need you both to help with the prep work.");
-    
-    /* Chocola gets excited */
-    show "chocola" sprite chocola_excited {
-        alpha: 1.0;
-        z: 120;
-        scale: 0.90;
-    };
-    with quick;
-    
-    sfx play meow;
-    
-    say(Chocola, "Yes, Master! Chocola will do her best! ✧");
-    
-    /* Native C block demonstration - advanced manipulation */
-    native "c" {
-        /* Make Chocola bounce with excitement */
-        CVNInstance* chocola = VN_FindInstance("chocola");
-        if (chocola) {
-            /* Add a slight tilt and scale boost */
-            chocola->rotation = 3.0f;
-            chocola->scale = 0.92f;
-            chocola->tint = 0xFFD0E8FF;  /* Extra pink when excited */
-        }
-    }
-    
-    say(Vanilla, "...I'll help too. Though Chocola will probably eat half the strawberries.");
-    
-    show "chocola" sprite chocola_pout {
-        rotation: 0.0;
-        scale: 0.85;
-    };
-    with dissolve(0.2);
-    
-    say(Chocola, "I-I won't! ...Maybe just one or two for taste testing...");
-    
-    /* Kashou smiles */
-    show "kashou" sprite kashou_smile with dissolve(0.2);
-    
-    say(Kashou, "Alright you two, let's get to work.");
-    
-    /* Transition to kitchen */
-    hide "kashou" with fade(0.3);
-    
-    scene bg kitchen;
-    with fade(0.5);
-    
-    /* Reposition characters for kitchen scene */
-    show "chocola" sprite chocola_happy {
-        x: 0.30;
-        y: 0.80;
-        z: 120;
-        tint: 0xffe6f2ff;
-    };
-    with dissolve(0.3);
-    
-    show "vanilla" sprite vanilla_smile {
-        x: 0.70;
-        y: 0.80;
-        z: 115;
-        tint: 0xe6f0ffff;
-    };
-    with dissolve(0.3);
-    
-    /* Working montage */
-    say(Narrator, "The morning passes peacefully as the three work together...");
-    
-    music play happy_theme loop fade_in 1.5;
-    
-    say(Chocola, "Vanilla, vanilla! Look how fluffy the cream is getting!");
-    
-    show "vanilla" sprite vanilla_happy with dissolve(0.2);
-    
-    say(Vanilla, "...It is quite fluffy. Good work, Chocola.");
-    
-    sfx play purr;
-    
-    /* Show progress UI on GamePad */
-    show ui text "Baking Progress: 50%" as "progress"
-        use gamepad_ui
-    {
-        y: 0.30;
-    };
-    
-    pause 1.0;
-    
-    show "progress" text "Baking Progress: 75%";
-    with dissolve(0.3);
-    
-    pause 1.0;
-    
-    show "progress" text "Baking Progress: 100% ✓";
-    with dissolve(0.3);
-    
-    pause 0.5;
-    hide "progress" with fade(0.3);
-    
-    /* Success! */
-    show "chocola" sprite chocola_excited {
-        z: 125;
-        scale: 0.90;
-    };
-    with quick;
-    
-    say(Chocola, "We did it! It looks amazing!");
-    
-    /* Advanced animation - celebration */
-    native "c" {
-        CVNInstance* chocola = VN_FindInstance("chocola");
-        CVNInstance* vanilla = VN_FindInstance("vanilla");
-        
-        if (chocola) {
-            /* Chocola jumps for joy */
-            chocola->y = 0.75f;  /* Slightly higher */
-            chocola->rotation = -5.0f;
-        }
-        
-        if (vanilla) {
-            /* Vanilla subtle smile */
-            vanilla->tint = 0xFFE0F0FF;  /* Slightly brighter */
-        }
-    }
-    
-    pause 0.3;
-    
-    native "c" {
-        CVNInstance* chocola = VN_FindInstance("chocola");
-        if (chocola) {
-            chocola->y = 0.80f;  /* Back down */
-            chocola->rotation = 0.0f;
-        }
-    }
-    
-    say(Vanilla, "...Yes. Master will be pleased.");
-    
-    /* CHOICE DEMONSTRATION */
-    show ui text "What should we do?" as "choice_prompt"
-        use gamepad_ui
-    {
-        y: 0.20;
-    };
-    
+    /* Choice time */
     choice {
-        "Taste test a slice" -> taste_test;
-        "Show Master right away" -> show_master;
-        "Take a picture first" -> take_picture;
+        "Sure, I'd love to join!" -> join_club;
+        "I need to think about it more..." -> think_more;
+        "What do we actually do here?" -> ask_activities;
     }
 }
 
-label taste_test {
-    hide "choice_prompt" with fade(0.2);
+label join_club {
     
-    show "chocola" sprite chocola_blush with dissolve(0.2);
+    show Sayori sprite sayori_happy
+    say(Sayori, "Yay! I knew you'd say yes!");
     
-    say(Chocola, "M-maybe just a tiny taste? To make sure it's perfect!");
+    show Monika sprite monika_happy {
+    };
+    say(Monika, "Wonderful! We're so happy to have you!");
+    say(Monika, "Now, let me explain how our club works...");
     
-    say(Vanilla, "...I suppose quality control is important.");
+    show Yuri sprite yuri_smile {
+    };
+    say(Yuri, "We usually share poems or discuss literature we've read...");
+    say(Yuri, "It's a very relaxing and enriching experience.");
     
-    sfx play impact;
+    show Natsuki sprite natsuki_smile {
+    };
+    say(Natsuki, "And I bring snacks! Today I made cupcakes!");
     
-    show ui text "Delicious! ★★★★★" as "rating"
-        use ui_top_center;
+    say(MC, "That sounds pretty good actually.");
     
-    pause 1.5;
-    hide "rating" with fade(0.3);
-    
-    jump ending;
+    jump first_activity;
 }
 
-label show_master {
-    hide "choice_prompt" with fade(0.2);
+label think_more {
     
-    say(Chocola, "Let's show Master right away! He'll be so proud!");
+    show Monika sprite monika_smile {
+    };
+    say(Monika, "Of course! Take all the time you need!");
+    say(Monika, "But why don't you stay for today's meeting? Get a feel for what we do?");
     
-    scene bg cafe_interior;
-    with fade(0.5);
+    show Sayori sprite sayori_smile
+    say(Sayori, "Yeah! Just hang out with us today!");
     
-    show Kashou sprite kashou_smile as "kashou"
-        use char_center;
+    say(MC, "Alright, I can do that.");
     
-    say(Kashou, "Excellent work, you two! This looks perfect.");
-    
-    sfx play bell;
-    
-    say(Kashou, "Just in time for our first customers!");
-    
-    jump ending;
+    jump first_activity;
 }
 
-label take_picture {
-    hide "choice_prompt" with fade(0.2);
+label ask_activities {
     
-    say(Vanilla, "...For social media. Good thinking.");
+    show Monika sprite monika_neutral {
+    };
+    say(Monika, "Great question! We do many things here!");
+    say(Monika, "We write and share poems, discuss books, and sometimes have themed events.");
     
-    sfx play impact;
+    show Yuri sprite yuri_happy {
+    };
+    say(Yuri, "We also have book discussions where we analyze themes and characters...");
+    say(Yuri, "It's quite intellectually stimulating!");
     
-    show ui text "📸 *SNAP*" as "camera"
-        use ui_top_center;
+    show Natsuki sprite natsuki_happy {
+    };
+    say(Natsuki, "And we eat snacks! That's important too!");
     
-    pause 0.8;
-    hide "camera" with fade(0.2);
+    show Sayori sprite sayori_happy
+    say(Sayori, "See? It's fun AND educational!");
     
-    show "chocola" sprite chocola_happy with dissolve(0.2);
+    say(MC, "Okay, I'm interested. I'll give it a try.");
     
-    say(Chocola, "Perfect! Our fans will love this!");
-    
-    jump ending;
+    jump first_activity;
 }
 
-label ending {
-    /* Final scene */
-    music play cafe_theme loop fade_in 2.0;
+label first_activity {
+    /* First club activity */
     
-    scene bg cafe_exterior;
+    hide "sayori2" with fade(0.2)
+    
+    
+    hide "yuri" with fade(0.3)
+    hide "natsuki" with fade(0.3)
+    
+    say(Monika, "Alright everyone! Let's start today's activity!");
+    say(Monika, "For our new member, we'll do something simple - sharing our favorite books!");
+    
+    show Yuri sprite yuri_happy as "yuri2"
+    
+    say(Yuri, "I'll go first! My current favorite is 'Portrait of Markov'...");
+    say(Yuri, "It's a psychological thriller with deep philosophical undertones.");
+    
+    
+    show Natsuki sprite natsuki_pout as "natsuki2"
+    
+    say(Natsuki, "That sounds boring! I like manga!");
+    say(Natsuki, "The stories are exciting and the art is beautiful!");
+    
+    show Yuri sprite yuri_neutral
+    say(Yuri, "M-manga can be literature too...");
+    
+    show Natsuki sprite natsuki_happy
+    say(Natsuki, "Exactly! Don't knock it till you try it!");
+    
+    hide "yuri2" with fade(0.3)
+    hide "natsuki2" with fade(0.3)
+    
+    
+    show Monika sprite monika_smile
+    say(Monika, "See? Everyone has different tastes, and that's what makes our club special!");
+    say(Monika, "What about you? Do you have a favorite book?");
+    
+    say(MC, "I... haven't read much lately, to be honest.");
+    
+    show Monika sprite monika_happy
+    say(Monika, "That's okay! This is the perfect place to start!");
+    say(Monika, "Maybe Yuri or Natsuki can recommend something for you!");
+    
+    say(Narrator, "As the meeting continued, I found myself enjoying the company...");
+    say(Narrator, "Everyone was passionate about what they loved, and it was infectious.");
+    
+    /* Ending the first day */
+    scene bg corridor;
     with fade(1.0);
     
-    say(Narrator, "And so, another peaceful day begins at La Soleil...");
-    say(Narrator, "This demo showcased CVN engine's dual-screen, multi-character, and advanced scripting features!");
+    /* music play sayori_theme loop fade_in 1.5; */ /* Not yet supported by parser */
     
-    show ui text "Thank you for playing!" as "thanks"
-        use ui_top_center;
+    show Sayori sprite sayori_happy as "sayori3"
     
-    show ui text "CVN Engine - Powered by Native C" as "powered"
-        use gamepad_ui;
+    say(Sayori, "So? What did you think?");
     
-    pause 3.0;
+    say(MC, "It was actually really nice. Everyone seems great.");
+    
+    show Sayori sprite sayori_smile
+    say(Sayori, "I'm so glad! Does this mean you're joining?");
+    
+    say(MC, "Yeah, I think I will.");
+    
+    show Sayori sprite sayori_happy
+    say(Sayori, "Yay! This is the best day ever!");
+    say(Sayori, "We're going to have so much fun together!");
+    
+    say(Narrator, "And so, I joined the Literature Club...");
+    say(Narrator, "Little did I know, this decision would change everything...");
+    say(Narrator, "New friendships, new experiences, and maybe... something more?");
+    
+    /* THE END of Chapter 1 */
+    scene bg club_room;
+    with fade(1.5);
+    
+    pause 2.0;
+    
+    say(Narrator, "To be continued...");
+    say(Narrator, "Thank you for playing the Literature Club Dating Sim Demo!");
     
     /* End */
     fade_to_black 2.0;
 }
 
 /* =========================================================
-   End of Nekopara Demo Script
+   End of Literature Club Dating Sim Demo Script
    Features demonstrated:
    - Character definitions with colors and voice tags
    - Asset management (backgrounds, sprites, audio)
    - Reusable position styles
    - Scene transitions (fade, dissolve, move, quick)
    - Background music with fade in/out
-   - Sound effects
    - Multi-character positioning and depth
    - Expression changes
-   - Native C blocks for advanced manipulation
-   - Dual-screen UI (GamePad)
    - Choice system with branches
    - Labels and jumps
-   - Dynamic text on UI layer
+   - Dating sim narrative structure
    ========================================================= */

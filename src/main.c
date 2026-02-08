@@ -1,11 +1,11 @@
 
 #include "main.h"
 #include "cvn_full.h"
-#include "engine/text.h"
 #include "engine/log.h"
+#include "engine/text.h"
 #include "script/cvn_parser.h"
-#include <stdio.h>
 #include <math.h>
+#include <stdio.h>
 #include <string.h>
 #ifdef __WIIU__
 #define CVN_WIIU 1
@@ -23,513 +23,521 @@
 #define TYPEWRITER_SPEED 0.03f
 
 // Platform-specific content path helper
-static const char *get_content_path(const char *relpath)
-{
+static const char *get_content_path(const char *relpath) {
 #if CVN_WIIU
-    // Wii U uses fs:/vol/content/ as root
-    static char buf[256];
-    snprintf(buf, sizeof(buf), "fs:/vol/content/%s", relpath);
-    return buf;
+  // Wii U uses fs:/vol/content/ as root
+  static char buf[256];
+  snprintf(buf, sizeof(buf), "fs:/vol/content/%s", relpath);
+  return buf;
 #else
-    // Desktop uses ./content/
-    static char buf[256];
-    snprintf(buf, sizeof(buf), "./content/%s", relpath);
-    return buf;
+  // Desktop uses ./content/
+  static char buf[256];
+  snprintf(buf, sizeof(buf), "./content/%s", relpath);
+  return buf;
 #endif
 }
 
-typedef struct
-{
-    CVNEngine *engine;
-    CVNTextRenderer *text_renderer;
-    TTF_Font *dialogue_font;
-    TTF_Font *name_font;
-    TTF_Font *ui_font;
+typedef struct {
+  CVNEngine *engine;
+  CVNTextRenderer *text_renderer;
+  TTF_Font *dialogue_font;
+  TTF_Font *name_font;
+  TTF_Font *ui_font;
 
-    /* CVN Script (heap allocated due to large size) */
-    CVNFile *script;
-    int current_command;
+  /* CVN Script (heap allocated due to large size) */
+  CVNFile *script;
+  int current_command;
 
-    /* Current dialogue state */
-    char current_speaker[128];
-    char current_text[MAX_DIALOGUE_LENGTH];
+  /* Current dialogue state */
+  char current_speaker[128];
+  char current_text[MAX_DIALOGUE_LENGTH];
 
-    /* Typewriter effect */
-    float typewriter_timer;
-    int visible_chars;
-    bool text_complete;
+  /* Typewriter effect */
+  float typewriter_timer;
+  int visible_chars;
+  bool text_complete;
 
-    /* Character animations */
-    float anim_time;
+  /* Character animations */
+  float anim_time;
 
-    /* Window size tracking */
-    int screen_w;
-    int screen_h;
-    int ui_w;
-    int ui_h;
+  /* Window size tracking */
+  int screen_w;
+  int screen_h;
+  int ui_w;
+  int ui_h;
 
-    bool running;
+  bool running;
 } Demo;
 
-static void execute_command(Demo *demo, CVNCommand *cmd)
-{
-    switch (cmd->type)
-    {
-    case CVN_CMD_SCENE:
-        if (cmd->arg_count >= 2)
-        {
-            const char *path = cvn_get_asset_path(demo->script, cmd->args[0], cmd->args[1]);
-            if (path)
-            {
-                CVN_LOG("Setting background: %s", path);
-                cvn_api_set_background(demo->engine, path);
-            }
-            else
-            {
-                CVN_LOG("WARNING: Asset not found: %s %s", cmd->args[0], cmd->args[1]);
-            }
-        }
-        break;
-
-    case CVN_CMD_SHOW:
-        if (cmd->arg_count >= 4)
-        {
-            const char *path = cvn_get_asset_path(demo->script, cmd->args[1], cmd->args[2]);
-            if (path)
-            {
-                CVN_LOG("Showing sprite: %s (%s)", cmd->args[3], path);
-                cvn_api_show_sprite(demo->engine, path, cmd->args[3], "actors", 0.5f, 0.8f, 0.85f);
-            }
-            else
-            {
-                CVN_LOG("WARNING: Sprite not found: %s %s", cmd->args[1], cmd->args[2]);
-            }
-        }
-        break;
-
-    case CVN_CMD_HIDE:
-        if (cmd->arg_count >= 1)
-        {
-            CVN_LOG("Hiding: %s", cmd->args[0]);
-            cvn_api_hide(demo->engine, cmd->args[0]);
-        }
-        break;
-
-    case CVN_CMD_SAY:
-        if (cmd->arg_count >= 2)
-        {
-            CVN_LOG("SAY: %s: %.50s...", cmd->args[0], cmd->args[1]);
-            strncpy(demo->current_speaker, cmd->args[0], sizeof(demo->current_speaker) - 1);
-            strncpy(demo->current_text, cmd->args[1], sizeof(demo->current_text) - 1);
-            demo->current_speaker[sizeof(demo->current_speaker) - 1] = '\0';
-            demo->current_text[sizeof(demo->current_text) - 1] = '\0';
-            demo->visible_chars = 0;
-            demo->typewriter_timer = 0.0f;
-            demo->text_complete = false;
-            CVN_LOG("Text set: speaker='%s' text_len=%d", demo->current_speaker, (int)strlen(demo->current_text));
-        }
-        break;
-
-    default:
-        break;
+static void execute_command(Demo *demo, CVNCommand *cmd) {
+  switch (cmd->type) {
+  case CVN_CMD_SCENE:
+    if (cmd->arg_count >= 2) {
+      const char *path =
+          cvn_get_asset_path(demo->script, cmd->args[0], cmd->args[1]);
+      if (path) {
+        CVN_LOG("Setting background: %s", path);
+        cvn_api_set_background(demo->engine, path);
+      } else {
+        CVN_LOG("WARNING: Asset not found: %s %s", cmd->args[0], cmd->args[1]);
+      }
     }
+    break;
+
+  case CVN_CMD_SHOW:
+    if (cmd->arg_count >= 4) {
+      const char *path =
+          cvn_get_asset_path(demo->script, cmd->args[1], cmd->args[2]);
+      if (path) {
+        CVN_LOG("Showing sprite: %s (%s)", cmd->args[3], path);
+        cvn_api_show_sprite(demo->engine, path, cmd->args[3], "actors", 0.5f,
+                            0.8f, 0.85f);
+      } else {
+        CVN_LOG("WARNING: Sprite not found: %s %s", cmd->args[1], cmd->args[2]);
+      }
+    } else if (cmd->arg_count >= 3) {
+      /* Update existing sprite with new expression */
+      const char *path =
+          cvn_get_asset_path(demo->script, cmd->args[1], cmd->args[2]);
+      if (path) {
+        CVN_LOG("Updating sprite: %s (%s)", cmd->args[0], path);
+        cvn_api_show_sprite(demo->engine, path, cmd->args[0], "actors", 0.5f,
+                            0.8f, 0.85f);
+      } else {
+        CVN_LOG("WARNING: Sprite not found: %s %s", cmd->args[1], cmd->args[2]);
+      }
+    }
+    break;
+
+  case CVN_CMD_HIDE:
+    if (cmd->arg_count >= 1) {
+      CVN_LOG("Hiding: %s", cmd->args[0]);
+      cvn_api_hide(demo->engine, cmd->args[0]);
+    }
+    break;
+
+  case CVN_CMD_SAY:
+    if (cmd->arg_count >= 2) {
+      CVN_LOG("SAY: %s: %.50s...", cmd->args[0], cmd->args[1]);
+      strncpy(demo->current_speaker, cmd->args[0],
+              sizeof(demo->current_speaker) - 1);
+      strncpy(demo->current_text, cmd->args[1], sizeof(demo->current_text) - 1);
+      demo->current_speaker[sizeof(demo->current_speaker) - 1] = '\0';
+      demo->current_text[sizeof(demo->current_text) - 1] = '\0';
+      demo->visible_chars = 0;
+      demo->typewriter_timer = 0.0f;
+      demo->text_complete = false;
+      CVN_LOG("Text set: speaker='%s' text_len=%d", demo->current_speaker,
+              (int)strlen(demo->current_text));
+    }
+    break;
+
+  default:
+    break;
+  }
 }
 
-static void init(Demo *demo, CVNEngine *engine)
-{
-    memset(demo, 0, sizeof(Demo));
-    demo->engine = engine;
-    demo->running = true;
+static void init(Demo *demo, CVNEngine *engine) {
+  memset(demo, 0, sizeof(Demo));
+  demo->engine = engine;
+  demo->running = true;
 
-    /* Get initial window sizes */
-    CVNWindowManager *wm = cvn_get_window_manager(engine);
-    SDL_Window *main_win = wm->displays[CVN_DISPLAY_PRIMARY].window;
-    SDL_Window *ui_win = wm->displays[CVN_DISPLAY_SECONDARY].window;
-    if (main_win)
-        SDL_GetWindowSize(main_win, &demo->screen_w, &demo->screen_h);
-    else
-    {
-        demo->screen_w = 1920;
-        demo->screen_h = 1080;
-    }
-    if (ui_win)
-        SDL_GetWindowSize(ui_win, &demo->ui_w, &demo->ui_h);
-    else
-    {
-        demo->ui_w = 854;
-        demo->ui_h = 480;
-    }
+  /* Get initial window sizes */
+  CVNWindowManager *wm = cvn_get_window_manager(engine);
+  SDL_Window *main_win = wm->displays[CVN_DISPLAY_PRIMARY].window;
+  SDL_Window *ui_win = wm->displays[CVN_DISPLAY_SECONDARY].window;
+  if (main_win)
+    SDL_GetWindowSize(main_win, &demo->screen_w, &demo->screen_h);
+  else {
+    demo->screen_w = 1920;
+    demo->screen_h = 1080;
+  }
+  if (ui_win)
+    SDL_GetWindowSize(ui_win, &demo->ui_w, &demo->ui_h);
+  else {
+    demo->ui_w = 854;
+    demo->ui_h = 480;
+  }
 
-    CVN_LOG("init: Starting...");
-    CVN_LOG("Allocating CVN script structure...");
+  CVN_LOG("init: Starting...");
+  CVN_LOG("Allocating CVN script structure...");
 
-    /* Allocate script on heap (it's >1MB, too big for stack) */
-    demo->script = (CVNFile *)malloc(sizeof(CVNFile));
-    if (!demo->script)
-    {
-        CVN_LOG("ERROR: Failed to allocate CVN script!");
-        demo->running = false;
-        return;
-    }
-    memset(demo->script, 0, sizeof(CVNFile));
+  /* Allocate script on heap (it's >1MB, too big for stack) */
+  demo->script = (CVNFile *)malloc(sizeof(CVNFile));
+  if (!demo->script) {
+    CVN_LOG("ERROR: Failed to allocate CVN script!");
+    demo->running = false;
+    return;
+  }
+  memset(demo->script, 0, sizeof(CVNFile));
 
-    CVN_LOG("Loading CVN script from: %s", get_content_path("demo.cvn"));
-    CVN_LOG("About to call cvn_parse_file...");
+  CVN_LOG("Loading CVN script from: %s", get_content_path("demo.cvn"));
+  CVN_LOG("About to call cvn_parse_file...");
 
-    cvn_parse_file_into(demo->script, get_content_path("demo.cvn"));
+  cvn_parse_file_into(demo->script, get_content_path("demo.cvn"));
 
-    CVN_LOG("Parser returned: %d commands, %d assets, %d characters",
-            demo->script->command_count, demo->script->asset_count,
-            demo->script->character_count);
+  CVN_LOG("Parser returned: %d commands, %d assets, %d characters",
+          demo->script->command_count, demo->script->asset_count,
+          demo->script->character_count);
 
-    if (demo->script->command_count == 0)
-    {
-        CVN_LOG("WARNING: No commands loaded, using fallback");
-        /* Set a simple background as fallback */
-        cvn_api_set_background(engine, get_content_path("bg_school.jpg"));
-        strncpy(demo->current_speaker, "System", sizeof(demo->current_speaker));
-        strncpy(demo->current_text, "CVN script file not found. Press A to exit.", sizeof(demo->current_text));
-        demo->text_complete = true;
-        return;
-    }
+  if (demo->script->command_count == 0) {
+    CVN_LOG("WARNING: No commands loaded, using fallback");
+    /* Set a simple background as fallback */
+    cvn_api_set_background(engine, get_content_path("bg_school.jpg"));
+    strncpy(demo->current_speaker, "System", sizeof(demo->current_speaker));
+    strncpy(demo->current_text, "CVN script file not found. Press A to exit.",
+            sizeof(demo->current_text));
+    demo->text_complete = true;
+    return;
+  }
 
-    CVN_LOG("Loaded script successfully");
+  CVN_LOG("Loaded script successfully");
 
-    /* Initialize text renderer */
-    CVN_LOG("Initializing text renderer...");
-    demo->text_renderer = cvn_text_init();
-    if (demo->text_renderer)
-    {
-        CVN_LOG("Loading fonts...");
-        demo->dialogue_font = cvn_text_load_font(demo->text_renderer, get_content_path("font.ttf"), 24);
-        demo->name_font = cvn_text_load_font(demo->text_renderer, get_content_path("font.ttf"), 20);
-        demo->ui_font = cvn_text_load_font(demo->text_renderer, get_content_path("font.ttf"), 18);
-        CVN_LOG("Fonts loaded");
-    }
+  /* Initialize text renderer */
+  CVN_LOG("Initializing text renderer...");
+  demo->text_renderer = cvn_text_init();
+  if (demo->text_renderer) {
+    CVN_LOG("Loading fonts...");
+    demo->dialogue_font = cvn_text_load_font(demo->text_renderer,
+                                             get_content_path("font.ttf"), 24);
+    demo->name_font = cvn_text_load_font(demo->text_renderer,
+                                         get_content_path("font.ttf"), 20);
+    demo->ui_font = cvn_text_load_font(demo->text_renderer,
+                                       get_content_path("font.ttf"), 18);
+    CVN_LOG("Fonts loaded");
+  }
 
-    CVN_LOG("Setting display routing...");
-    /* Set display routing */
-    CVNRenderer *renderer = cvn_get_renderer(engine);
-    cvn_renderer_set_layer_display(renderer, "background", CVN_DISPLAY_PRIMARY);
-    cvn_renderer_set_layer_display(renderer, "actors", CVN_DISPLAY_PRIMARY);
-    cvn_renderer_set_layer_display(renderer, "overlay", CVN_DISPLAY_PRIMARY);
-    cvn_renderer_set_layer_display(renderer, "ui", CVN_DISPLAY_SECONDARY);
-
-    /* Execute first command */
-    CVN_LOG("Executing first command...");
-    if (demo->script->command_count > 0)
-    {
-        execute_command(demo, &demo->script->commands[0]);
-    }
-
-    CVN_LOG("=== Demo Initialized ===");
-}
-
-static void advance_dialogue(Demo *demo)
-{
-    if (demo->current_command < demo->script->command_count - 1)
-    {
-        demo->current_command++;
-        CVN_LOG("Advancing to command %d/%d (type=%d)", demo->current_command, demo->script->command_count, demo->script->commands[demo->current_command].type);
-        execute_command(demo, &demo->script->commands[demo->current_command]);
-    }
-    else
-    {
-        CVN_LOG("Reached end of script, exiting");
-        demo->running = false;
-    }
-}
-
-static void update(Demo *demo, float delta_time)
-{
-    demo->anim_time += delta_time;
-
-    /* Typewriter effect */
-    if (!demo->text_complete && demo->current_text[0])
-    {
-        demo->typewriter_timer += delta_time;
-        int target_chars = (int)(demo->typewriter_timer / TYPEWRITER_SPEED);
-        int max_chars = strlen(demo->current_text);
-
-        if (target_chars >= max_chars)
-        {
-            demo->visible_chars = max_chars;
-            demo->text_complete = true;
-        }
-        else
-        {
-            demo->visible_chars = target_chars;
-        }
-    }
-}
-
-static void render_dialogue_box(Demo *demo, SDL_Renderer *renderer, int screen_w, int screen_h)
-{
-    if (!demo->current_text[0] || !demo->dialogue_font)
-        return;
-
-    /* Draw dialogue box - bigger and lower on screen, scale with window */
-    int margin = (int)(screen_w * 0.02f);
-    int box_h = (int)(screen_h * 0.19f);
-    SDL_Rect box = {margin, screen_h - box_h - margin, screen_w - 2 * margin, box_h};
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 220);
-    SDL_RenderFillRect(renderer, &box);
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderDrawRect(renderer, &box);
-
-    /* Draw speaker name - above the box */
-    if (demo->current_speaker[0] && demo->name_font)
-    {
-        SDL_Color name_color = {255, 200, 100, 255};
-        cvn_text_draw(renderer, demo->name_font, demo->current_speaker, margin + 20, box.y - 30, name_color);
-    }
-
-    /* Draw text with typewriter effect - properly inside box */
-    char visible_text[MAX_DIALOGUE_LENGTH];
-    strncpy(visible_text, demo->current_text, demo->visible_chars);
-    visible_text[demo->visible_chars] = '\0';
-
-    SDL_Color text_color = {255, 255, 255, 255};
-    /* Text starts 20px from top of box, 20px from left edge */
-    cvn_text_draw_wrapped(renderer, demo->dialogue_font, visible_text,
-                          box.x + 20, box.y + 20, box.w - 40, text_color, 5);
-}
-
-static void render_ui(Demo *demo, SDL_Renderer *renderer, int screen_w, int screen_h)
-{
-    if (!demo->ui_font)
-        return;
-
-    SDL_Color white = {255, 255, 255, 255};
-    char progress[64];
-    snprintf(progress, sizeof(progress), "Command %d/%d",
-             demo->current_command + 1, demo->script->command_count);
-    int margin = (int)(screen_w * 0.02f);
-    cvn_text_draw(renderer, demo->ui_font, progress, margin, margin, white);
-}
-
-int main(int argc, char *argv[])
-{
-    (void)argc;
-    (void)argv;
-    CVN_LOG_INIT();
-    CVN_LOG_INIT();
-#ifdef __APPLE__
-    SDL_SetHint(SDL_HINT_MAC_BACKGROUND_APP, "0");
-    SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
-#endif
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0) {
-        CVN_LOG("ERROR: SDL_Init failed: %s", SDL_GetError());
-        return 1;
-    }
-    CVN_LOG("════════════════════════════════════════════════");
-    CVN_LOG("     CVN Engine - CVN Demo                      ");
-    CVN_LOG("════════════════════════════════════════════════");
-    CVN_LOG("");
-    CVN_LOG("Features:");
-    CVN_LOG("  • CVN script parsing (.cvn files)");
-    CVN_LOG("  • Dual-screen rendering (TV + Gamepad)");
-    CVN_LOG("  • Typewriter dialogue effect");
-    CVN_LOG("");
-    CVN_LOG("Controls:");
-    CVN_LOG("  A/SPACE/ENTER - Advance dialogue");
-    CVN_LOG("  B/ESC - Exit");
-    CVN_LOG("");
-
-    CVN_LOG("main: Creating CVN config...");
-
-    /* Initialize CVN Engine */
-    CVNConfig config = {
-        .title = "CVN Demo",
-        .window_width = 1920,
-        .window_height = 1080,
-        .fullscreen = false,
-        .enable_secondary_display = true,
-        .secondary_width = 854,
-        .secondary_height = 480};
-#ifdef __APPLE__
-    config.fullscreen = false;
-    config.enable_secondary_display = false;
-    CVN_LOG("WARNING: Only the main window is enabled on macOS. All input and rendering will use the primary display.");
-#endif
-
-    CVN_LOG("main: Calling cvn_init...");
-
-    CVNEngine *engine = cvn_init(&config);
-    if (!engine)
-    {
-        CVN_LOG("ERROR: Failed to initialize CVN Engine");
-        return 1;
-    }
-
-    // After engine is created and before main loop, ensure window focus and text input
-    CVNWindowManager *wm_start = cvn_get_window_manager(engine);
-    SDL_Window *main_win = NULL;
-    if (wm_start)
-        main_win = wm_start->displays[CVN_DISPLAY_PRIMARY].window;
-
-    if (main_win)
-    {
-        SDL_RaiseWindow(main_win);
-        SDL_SetWindowInputFocus(main_win);
-        // SDL_SetWindowGrab(main_win, SDL_TRUE); // Removed to allow mouse to leave window
-    }
-    SDL_StartTextInput();
-
-    CVN_LOG("main: Engine initialized! Calling init...");
-
-    /* Initialize demo */
-    Demo demo;
-    init(&demo, engine);
-
-    CVN_LOG("Starting main loop...");
-    CVN_LOG("");
-
-    /* Get the joystick for manual polling (Wii U only) */
+  CVN_LOG("Setting display routing...");
+  /* Set display routing - on Wii U, show same content on both screens */
+  CVNRenderer *renderer = cvn_get_renderer(engine);
+  cvn_renderer_set_layer_display(renderer, "background", CVN_DISPLAY_PRIMARY);
+  cvn_renderer_set_layer_display(renderer, "actors", CVN_DISPLAY_PRIMARY);
+  cvn_renderer_set_layer_display(renderer, "overlay", CVN_DISPLAY_PRIMARY);
 #if CVN_WIIU
-    SDL_Joystick *gamepad = NULL;
-    if (SDL_NumJoysticks() > 0)
-    {
-        gamepad = SDL_JoystickOpen(0);
-    }
-    bool last_button_state = false;
-
-#endif
-
-    /* Main loop */
-    while (demo.running && cvn_update(engine))
-    {
-        float delta_time = cvn_get_delta_time(engine);
-
-#if CVN_WIIU
-        /* Manual joystick polling for Wii U */
-        if (gamepad)
-        {
-            bool button_pressed = SDL_JoystickGetButton(gamepad, 0); /* A button */
-            if (button_pressed && !last_button_state)
-            {
-                CVN_LOG("A BUTTON PRESSED (manual poll)");
-                if (demo.text_complete)
-                {
-                    advance_dialogue(&demo);
-                }
-                else
-                {
-                    demo.visible_chars = strlen(demo.current_text);
-                    demo.text_complete = true;
-                }
-            }
-            last_button_state = button_pressed;
-        }
-#endif
-
-        /* Handle events */
-        SDL_Event event;
-        while (SDL_PollEvent(&event))
-        {
-            CVN_LOG("[EVENT] type=%d", event.type);
-            if (event.type == SDL_QUIT)
-            {
-                demo.running = false;
-            }
-
-            if (event.type == SDL_WINDOWEVENT)
-            {
-                CVN_LOG("[WINDOWEVENT] event=%d windowID=%u", event.window.event, event.window.windowID);
-                if (event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED)
-                {
-                    CVN_LOG("[FOCUS] Window gained focus (windowID=%u)", event.window.windowID);
-                }
-                if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST)
-                {
-                    CVN_LOG("[FOCUS] Window lost focus (windowID=%u)", event.window.windowID);
-                }
-                if (event.window.event == SDL_WINDOWEVENT_RESIZED)
-                {
-                    int new_w = event.window.data1;
-                    int new_h = event.window.data2;
-                    CVNWindowManager *wm = cvn_get_window_manager(engine);
-                    if (event.window.windowID == SDL_GetWindowID(wm->displays[CVN_DISPLAY_PRIMARY].window))
-                    {
-                        demo.screen_w = new_w;
-                        demo.screen_h = new_h;
-                    }
-                    else if (wm->displays[CVN_DISPLAY_SECONDARY].window &&
-                             event.window.windowID == SDL_GetWindowID(wm->displays[CVN_DISPLAY_SECONDARY].window))
-                    {
-                        demo.ui_h = new_h;
-                    }
-                    CVN_LOG("Window resized: %dx%d", new_w, new_h);
-                }
-            }
-
-            // Minimal SDL-style input handling
-            if (event.type == SDL_KEYDOWN) {
-                if (event.key.keysym.sym == SDLK_SPACE) {
-                    CVN_LOG("Space bar was pressed!");
-                    if (demo.text_complete) {
-                        advance_dialogue(&demo);
-                    } else {
-                        demo.visible_chars = strlen(demo.current_text);
-                        demo.text_complete = true;
-                        CVN_LOG("Skipped typewriter, showing full text");
-                    }
-                } else if (event.key.keysym.sym == SDLK_ESCAPE) {
-                    demo.running = false;
-                }
-            } else if (event.type == SDL_KEYUP) {
-                if (event.key.keysym.sym == SDLK_SPACE) {
-                    CVN_LOG("Space bar was released!");
-                }
-            }
-        }
-
-        /* Update */
-        update(&demo, delta_time);
-
-        /* Render */
-        CVNRenderer *renderer = cvn_get_renderer(engine);
-        CVNWindowManager *wm = cvn_get_window_manager(engine);
-        SDL_Renderer *tv_renderer = cvn_window_get_renderer(wm, CVN_DISPLAY_PRIMARY);
-#ifdef __APPLE__
-        SDL_Renderer *gamepad_renderer = NULL;
+  /* On Wii U, route all layers to both displays */
+  cvn_renderer_set_layer_display(renderer, "ui", CVN_DISPLAY_PRIMARY);
 #else
-        SDL_Renderer *gamepad_renderer = cvn_window_get_renderer(wm, CVN_DISPLAY_SECONDARY);
+  cvn_renderer_set_layer_display(renderer, "ui", CVN_DISPLAY_SECONDARY);
 #endif
 
-        cvn_renderer_clear(renderer);
-        cvn_renderer_draw(renderer);
+  /* Execute first command */
+  CVN_LOG("Executing first command...");
+  if (demo->script->command_count > 0) {
+    execute_command(demo, &demo->script->commands[0]);
+  }
 
-        if (tv_renderer)
-        {
-            render_dialogue_box(&demo, tv_renderer, demo.screen_w, demo.screen_h);
-        }
+  CVN_LOG("=== Demo Initialized ===");
+}
 
-#ifndef __APPLE__
-        if (gamepad_renderer)
-        {
-            render_ui(&demo, gamepad_renderer, demo.ui_w, demo.ui_h);
-        }
+static void advance_dialogue(Demo *demo) {
+  if (demo->current_command < demo->script->command_count - 1) {
+    demo->current_command++;
+    CVN_LOG("Advancing to command %d/%d (type=%d)", demo->current_command,
+            demo->script->command_count,
+            demo->script->commands[demo->current_command].type);
+    execute_command(demo, &demo->script->commands[demo->current_command]);
+  } else {
+    CVN_LOG("Reached end of script, exiting");
+    demo->running = false;
+  }
+}
+
+static void update(Demo *demo, float delta_time) {
+  demo->anim_time += delta_time;
+
+  /* Typewriter effect */
+  if (!demo->text_complete && demo->current_text[0]) {
+    demo->typewriter_timer += delta_time;
+    int target_chars = (int)(demo->typewriter_timer / TYPEWRITER_SPEED);
+    int max_chars = strlen(demo->current_text);
+
+    if (target_chars >= max_chars) {
+      demo->visible_chars = max_chars;
+      demo->text_complete = true;
+    } else {
+      demo->visible_chars = target_chars;
+    }
+  }
+}
+
+static void render_dialogue_box(Demo *demo, SDL_Renderer *renderer,
+                                int screen_w, int screen_h) {
+  if (!demo->current_text[0] || !demo->dialogue_font)
+    return;
+
+  /* Draw dialogue box - bigger and lower on screen, scale with window */
+  int margin = (int)(screen_w * 0.02f);
+  int box_h = (int)(screen_h * 0.19f);
+  SDL_Rect box = {margin, screen_h - box_h - margin, screen_w - 2 * margin,
+                  box_h};
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 220);
+  SDL_RenderFillRect(renderer, &box);
+  SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+  SDL_RenderDrawRect(renderer, &box);
+
+  /* Draw speaker name - above the box */
+  if (demo->current_speaker[0] && demo->name_font) {
+    SDL_Color name_color = {255, 200, 100, 255};
+    cvn_text_draw(renderer, demo->name_font, demo->current_speaker, margin + 20,
+                  box.y - 30, name_color);
+  }
+
+  /* Draw text with typewriter effect - properly inside box */
+  char visible_text[MAX_DIALOGUE_LENGTH];
+  strncpy(visible_text, demo->current_text, demo->visible_chars);
+  visible_text[demo->visible_chars] = '\0';
+
+  SDL_Color text_color = {255, 255, 255, 255};
+  /* Text starts 20px from top of box, 20px from left edge */
+  cvn_text_draw_wrapped(renderer, demo->dialogue_font, visible_text, box.x + 20,
+                        box.y + 20, box.w - 40, text_color, 5);
+}
+
+static void render_ui(Demo *demo, SDL_Renderer *renderer, int screen_w,
+                      int screen_h) {
+  if (!demo->ui_font)
+    return;
+
+  SDL_Color white = {255, 255, 255, 255};
+  char progress[64];
+  snprintf(progress, sizeof(progress), "Command %d/%d",
+           demo->current_command + 1, demo->script->command_count);
+  int margin = (int)(screen_w * 0.02f);
+  cvn_text_draw(renderer, demo->ui_font, progress, margin, margin, white);
+}
+
+int main(int argc, char *argv[]) {
+  (void)argc;
+  (void)argv;
+  CVN_LOG_INIT();
+  CVN_LOG_INIT();
+#ifdef __APPLE__
+  SDL_SetHint(SDL_HINT_MAC_BACKGROUND_APP, "0");
+  SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
+#endif
+  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_JOYSTICK |
+               SDL_INIT_GAMECONTROLLER) != 0) {
+    CVN_LOG("ERROR: SDL_Init failed: %s", SDL_GetError());
+    return 1;
+  }
+  CVN_LOG("════════════════════════════════════════════════");
+  CVN_LOG("     CVN Engine - CVN Demo                      ");
+  CVN_LOG("════════════════════════════════════════════════");
+  CVN_LOG("");
+  CVN_LOG("Features:");
+  CVN_LOG("  • CVN script parsing (.cvn files)");
+  CVN_LOG("  • Dual-screen rendering (TV + Gamepad)");
+  CVN_LOG("  • Typewriter dialogue effect");
+  CVN_LOG("");
+  CVN_LOG("Controls:");
+  CVN_LOG("  SPACE/ENTER/LEFT CLICK - Advance dialogue");
+  CVN_LOG("  ESC - Exit");
+  CVN_LOG("");
+
+  CVN_LOG("main: Creating CVN config...");
+
+  /* Initialize CVN Engine */
+  CVNConfig config = {.title = "CVN Demo",
+                      .window_width = 1920,
+                      .window_height = 1080,
+                      .fullscreen = false,
+#if CVN_WIIU
+                      .enable_secondary_display = true,
+#else
+                      .enable_secondary_display = false,
+#endif
+                      .secondary_width = 854,
+                      .secondary_height = 480,
+                      .audio_frequency = 44100,
+                      .audio_channels = 16};
+#ifdef __APPLE__
+  config.fullscreen = false;
+  config.enable_secondary_display = false;
+  CVN_LOG("WARNING: Only the main window is enabled on macOS. All input and "
+          "rendering will use the primary display.");
 #endif
 
-        cvn_renderer_present(renderer);
-        SDL_Delay(16);
+  CVN_LOG("main: Calling cvn_init...");
+
+  CVNEngine *engine = cvn_init(&config);
+  if (!engine) {
+    CVN_LOG("ERROR: Failed to initialize CVN Engine");
+    return 1;
+  }
+
+  // After engine is created and before main loop, ensure window focus and text
+  // input
+  CVNWindowManager *wm_start = cvn_get_window_manager(engine);
+  SDL_Window *main_win = NULL;
+  if (wm_start)
+    main_win = wm_start->displays[CVN_DISPLAY_PRIMARY].window;
+
+  if (main_win) {
+    SDL_RaiseWindow(main_win);
+    SDL_SetWindowInputFocus(main_win);
+    // SDL_SetWindowGrab(main_win, SDL_TRUE); // Removed to allow mouse to leave
+    // window
+  }
+  // Don't start text input - it can interfere with key events
+  // SDL_StartTextInput();
+
+  CVN_LOG("main: Engine initialized! Calling init...");
+
+  /* Initialize demo */
+  Demo demo;
+  init(&demo, engine);
+
+  CVN_LOG("Starting main loop...");
+  CVN_LOG("");
+
+  /* Get the joystick for manual polling */
+  SDL_Joystick *gamepad = NULL;
+  if (SDL_NumJoysticks() > 0) {
+    gamepad = SDL_JoystickOpen(0);
+    CVN_LOG("Gamepad opened: %s", SDL_JoystickName(gamepad));
+  }
+  bool last_button_state = false;
+
+  /* Main loop */
+  while (demo.running && cvn_update(engine)) {
+    float delta_time = cvn_get_delta_time(engine);
+
+    /* Manual joystick polling (works on all platforms) */
+    if (gamepad) {
+      bool button_pressed = SDL_JoystickGetButton(gamepad, 0); /* A button */
+      if (button_pressed && !last_button_state) {
+        CVN_LOG("A BUTTON PRESSED (manual poll)");
+        if (demo.text_complete) {
+          advance_dialogue(&demo);
+        } else {
+          demo.visible_chars = strlen(demo.current_text);
+          demo.text_complete = true;
+        }
+      }
+      last_button_state = button_pressed;
     }
 
-    CVN_LOG("");
-    CVN_LOG("Demo completed!");
+    /* Handle events */
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+      if (event.type == SDL_QUIT) {
+        demo.running = false;
+      }
 
-    if (demo.text_renderer)
-    {
-        cvn_text_shutdown(demo.text_renderer);
-    }
-    if (demo.script)
-    {
-        cvn_free(demo.script);
-        free(demo.script);
-    }
-    cvn_shutdown(engine);
-    CVN_LOG_SHUTDOWN();
+      if (event.type == SDL_WINDOWEVENT) {
+        if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
+          int new_w = event.window.data1;
+          int new_h = event.window.data2;
+          CVNWindowManager *wm = cvn_get_window_manager(engine);
+          if (event.window.windowID ==
+              SDL_GetWindowID(wm->displays[CVN_DISPLAY_PRIMARY].window)) {
+            demo.screen_w = new_w;
+            demo.screen_h = new_h;
+          } else if (wm->displays[CVN_DISPLAY_SECONDARY].window &&
+                     event.window.windowID ==
+                         SDL_GetWindowID(
+                             wm->displays[CVN_DISPLAY_SECONDARY].window)) {
+            demo.ui_h = new_h;
+          }
+        }
+      }
 
-    return 0;
+      // Input handling - keyboard, mouse, and controller
+      if (event.type == SDL_KEYDOWN) {
+        // Log all key presses for debugging
+        CVN_LOG("SDL_KEYDOWN: scancode=%d, sym=%d, mod=%d", 
+                event.key.keysym.scancode, event.key.keysym.sym, event.key.keysym.mod);
+        
+        if (event.key.keysym.sym == SDLK_SPACE || 
+            event.key.keysym.sym == SDLK_RETURN || 
+            event.key.keysym.sym == SDLK_KP_ENTER) {
+          CVN_LOG("Advance key pressed! text_complete=%d", demo.text_complete);
+          if (demo.text_complete) {
+            advance_dialogue(&demo);
+          } else {
+            demo.visible_chars = strlen(demo.current_text);
+            demo.text_complete = true;
+            CVN_LOG("Skipped typewriter, showing full text");
+          }
+        } else if (event.key.keysym.sym == SDLK_ESCAPE) {
+          CVN_LOG("Escape pressed, exiting");
+          demo.running = false;
+        }
+      } else if (event.type == SDL_MOUSEBUTTONDOWN) {
+        CVN_LOG("Mouse button %d pressed!", event.button.button);
+        if (event.button.button == SDL_BUTTON_LEFT) {
+          CVN_LOG("Left click - text_complete=%d", demo.text_complete);
+          if (demo.text_complete) {
+            advance_dialogue(&demo);
+          } else {
+            demo.visible_chars = strlen(demo.current_text);
+            demo.text_complete = true;
+            CVN_LOG("Skipped typewriter, showing full text");
+          }
+        }
+      } else if (event.type == SDL_JOYBUTTONDOWN) {
+        CVN_LOG("Joystick button %d pressed!", event.jbutton.button);
+        if (event.jbutton.button == 0 || event.jbutton.button == 1) { // A or B button
+          if (demo.text_complete) {
+            advance_dialogue(&demo);
+          } else {
+            demo.visible_chars = strlen(demo.current_text);
+            demo.text_complete = true;
+          }
+        }
+      }
+    }
+
+    /* Update */
+    update(&demo, delta_time);
+
+    /* Render */
+    CVNRenderer *renderer = cvn_get_renderer(engine);
+    CVNWindowManager *wm = cvn_get_window_manager(engine);
+    SDL_Renderer *tv_renderer =
+        cvn_window_get_renderer(wm, CVN_DISPLAY_PRIMARY);
+#ifdef __APPLE__
+    SDL_Renderer *gamepad_renderer = NULL;
+#else
+    SDL_Renderer *gamepad_renderer =
+        cvn_window_get_renderer(wm, CVN_DISPLAY_SECONDARY);
+#endif
+
+    cvn_renderer_clear(renderer);
+    cvn_renderer_draw(renderer);
+
+    if (tv_renderer) {
+      render_dialogue_box(&demo, tv_renderer, demo.screen_w, demo.screen_h);
+    }
+
+#if CVN_WIIU
+    /* On Wii U, render same content to both screens */
+    if (gamepad_renderer) {
+      render_dialogue_box(&demo, gamepad_renderer, demo.ui_w, demo.ui_h);
+    }
+#elif !defined(__APPLE__)
+    if (gamepad_renderer) {
+      render_ui(&demo, gamepad_renderer, demo.ui_w, demo.ui_h);
+    }
+#endif
+
+    cvn_renderer_present(renderer);
+    SDL_Delay(16);
+  }
+
+  CVN_LOG("");
+  CVN_LOG("Demo completed!");
+
+  if (demo.text_renderer) {
+    cvn_text_shutdown(demo.text_renderer);
+  }
+  if (demo.script) {
+    cvn_free(demo.script);
+    free(demo.script);
+  }
+
+  cvn_shutdown(engine);
+  CVN_LOG_SHUTDOWN();
+
+  return 0;
 }
